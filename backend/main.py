@@ -133,7 +133,7 @@ class PromptResponse(BaseModel):
 
 
 class RenderRequest(BaseModel):
-    mode: Literal["markdown", "pdf"] = "markdown"
+    mode: Literal["markdown", "html", "pdf"] = "markdown"
     offer_number: str = Field(min_length=3)
     markdown: Optional[str] = None
     form_data: Optional[OfferFormPayload] = None
@@ -212,18 +212,31 @@ async def render(req: RenderRequest):
     config = get_config()
     user_profile = get_user_profile()
 
-    if req.mode == "pdf":
+    if req.mode in ("pdf", "html"):
         if not req.markdown:
-            raise HTTPException(status_code=422, detail="Markdown fehlt fuer den PDF-Export.")
-        pdf_path = _offer_dir(req.offer_number) / f"Angebot_{req.offer_number}.pdf"
-        pdf_bytes = render_offer(req.markdown, config, output_path=pdf_path)
-        return Response(
-            content=pdf_bytes,
-            media_type="application/pdf",
-            headers={
-                "Content-Disposition": f'attachment; filename="Angebot_{req.offer_number}.pdf"'
-            },
-        )
+            raise HTTPException(status_code=422, detail="Markdown fehlt fuer den Export.")
+        if req.mode == "pdf":
+            pdf_path = _offer_dir(req.offer_number) / f"Angebot_{req.offer_number}.pdf"
+            pdf_bytes = render_offer(req.markdown, config, output_path=pdf_path)
+            return Response(
+                content=pdf_bytes,
+                media_type="application/pdf",
+                headers={
+                    "Content-Disposition": f'attachment; filename="Angebot_{req.offer_number}.pdf"'
+                },
+            )
+        else:
+            from .renderer import render_markdown_to_html
+            html_str = render_markdown_to_html(req.markdown, config)
+            html_path = _offer_dir(req.offer_number) / f"Angebot_{req.offer_number}.html"
+            html_path.write_text(html_str, encoding="utf-8")
+            return Response(
+                content=html_str.encode("utf-8"),
+                media_type="text/html",
+                headers={
+                    "Content-Disposition": f'attachment; filename="Angebot_{req.offer_number}.html"'
+                },
+            )
 
     if req.form_data is None:
         raise HTTPException(status_code=422, detail="Formulardaten fehlen fuer die Markdown-Erzeugung.")

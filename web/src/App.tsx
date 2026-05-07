@@ -1,5 +1,7 @@
 import {
   ChevronDown,
+  Download,
+  FileCode2,
   LayoutPanelTop,
   MessageSquareText,
   Plus,
@@ -108,6 +110,7 @@ function App() {
   const [mode, setMode] = React.useState<WorkspaceMode>("chat");
   const [messages, setMessages] = React.useState<ChatMessage[]>(initialMessages);
   const [isLoading, setIsLoading] = React.useState(false);
+  const [isExporting, setIsExporting] = React.useState(false);
   const [draft, setDraft] = React.useState<OfferDraft>(initialDraft);
 
   React.useEffect(() => {
@@ -184,6 +187,90 @@ function App() {
 
   const removeLineItem = (i: number) =>
     setDraft((d) => ({ ...d, line_items: d.line_items.filter((_, j) => j !== i) }));
+
+  const handleExport = async (format: "html" | "pdf") => {
+    if (isExporting) return;
+    setIsExporting(true);
+    try {
+      const validity = new Date();
+      validity.setDate(validity.getDate() + 42);
+      const validityDate = validity.toISOString().split("T")[0];
+      const offerNumber = draft.offer_number.trim() || "001";
+
+      const aiPayload = JSON.stringify({
+        cover_paragraphs: draft.cover_paragraphs.filter(Boolean),
+        ausgangssituation: draft.ausgangssituation || ".",
+        einschaetzung_rows: draft.einschaetzung_rows,
+        projektziele: draft.projektziele,
+        leistungsbeschreibung: draft.leistungsbeschreibung || ".",
+      });
+
+      const formData = {
+        offer_number: offerNumber,
+        validity_date: validityDate,
+        customer_company: draft.customer_company || ".",
+        customer_street: draft.customer_street || ".",
+        customer_postal: draft.customer_postal || ".",
+        customer_city: draft.customer_city || ".",
+        customer_country: "Deutschland",
+        customer_requester_name: draft.customer_requester_name || ".",
+        customer_requester_email: draft.customer_requester_email || ".",
+        customer_requester_role: draft.customer_requester_role,
+        customer_primary_contact_gender: draft.customer_primary_contact_gender,
+        customer_primary_contact_name: draft.customer_primary_contact_name || ".",
+        customer_primary_contact_email: draft.customer_primary_contact_email || ".",
+        customer_primary_contact_phone: draft.customer_primary_contact_phone,
+        project_name: draft.project_name || ".",
+        project_context: draft.ausgangssituation || draft.leistungsbeschreibung || ".",
+        location_mode: draft.location_mode,
+        line_items: draft.line_items,
+        leistungsausschluesse: draft.leistungsausschluesse,
+      };
+
+      const mdRes = await fetch("/api/render", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mode: "markdown",
+          offer_number: offerNumber,
+          form_data: formData,
+          ai_response: aiPayload,
+        }),
+      });
+      if (!mdRes.ok) {
+        const err = await mdRes.json().catch(() => ({}));
+        throw new Error((err as { detail?: string }).detail ?? `HTTP ${mdRes.status}`);
+      }
+      const mdData = (await mdRes.json()) as { markdown: string; offer_number: string };
+
+      const exportRes = await fetch("/api/render", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mode: format,
+          offer_number: mdData.offer_number,
+          markdown: mdData.markdown,
+        }),
+      });
+      if (!exportRes.ok) {
+        const err = await exportRes.json().catch(() => ({}));
+        throw new Error((err as { detail?: string }).detail ?? `HTTP ${exportRes.status}`);
+      }
+
+      const blob = await exportRes.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Angebot_${mdData.offer_number}.${format}`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Unbekannter Fehler";
+      alert(`Export fehlgeschlagen: ${msg}`);
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   const handleSend = async (message: string, _files?: File[]) => {
     if (!message.trim()) return;
@@ -322,7 +409,31 @@ function App() {
               <div className="single-col">
                 <section className="canvas-panel">
                   <div className="canvas-panel__header">
-                    <h3>Inhalt bearbeiten</h3>
+                    <div className="canvas-panel__header-top">
+                      <h3>Inhalt bearbeiten</h3>
+                      <div className="canvas-export-actions">
+                        <button
+                          type="button"
+                          className="canvas-export-btn"
+                          onClick={() => handleExport("html")}
+                          disabled={isExporting}
+                          title="Als HTML herunterladen"
+                        >
+                          <FileCode2 className="h-4 w-4" />
+                          HTML
+                        </button>
+                        <button
+                          type="button"
+                          className="canvas-export-btn canvas-export-btn--primary"
+                          onClick={() => handleExport("pdf")}
+                          disabled={isExporting}
+                          title="Als PDF herunterladen"
+                        >
+                          <Download className="h-4 w-4" />
+                          {isExporting ? "Wird erstellt…" : "PDF"}
+                        </button>
+                      </div>
+                    </div>
                     <p>Nur die Felder, die pro Angebot variieren. Präambel, Vertragsschluss und Firmendaten werden automatisch gesetzt.</p>
                   </div>
 

@@ -375,6 +375,13 @@ html[data-theme="dark"] .brandbar h1 {
   margin-bottom: 16px;
 }
 
+.canvas-panel__header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
 .canvas-panel__header h3 {
   margin: 0;
   font-size: 1.05rem;
@@ -385,6 +392,48 @@ html[data-theme="dark"] .brandbar h1 {
   margin: 7px 0 0;
   color: var(--text-soft);
   line-height: 1.5;
+}
+
+.canvas-export-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.canvas-export-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text-primary);
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.canvas-export-btn:hover:not(:disabled) {
+  background: var(--surface-3);
+  border-color: var(--border-strong);
+}
+
+.canvas-export-btn--primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.canvas-export-btn--primary:hover:not(:disabled) {
+  background: var(--accent-hover, color-mix(in srgb, var(--accent) 85%, #000));
+  border-color: var(--accent-hover, color-mix(in srgb, var(--accent) 85%, #000));
+}
+
+.canvas-export-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 .canvas-field {
