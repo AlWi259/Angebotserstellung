@@ -215,43 +215,51 @@ async def render(req: RenderRequest):
     if req.mode in ("pdf", "html"):
         if not req.markdown:
             raise HTTPException(status_code=422, detail="Markdown fehlt fuer den Export.")
-        if req.mode == "pdf":
-            pdf_path = _offer_dir(req.offer_number) / f"Angebot_{req.offer_number}.pdf"
-            pdf_bytes = render_offer(req.markdown, config, output_path=pdf_path)
-            return Response(
-                content=pdf_bytes,
-                media_type="application/pdf",
-                headers={
-                    "Content-Disposition": f'attachment; filename="Angebot_{req.offer_number}.pdf"'
-                },
-            )
-        else:
-            from .renderer import render_markdown_to_html
-            html_str = render_markdown_to_html(req.markdown, config)
-            html_path = _offer_dir(req.offer_number) / f"Angebot_{req.offer_number}.html"
-            html_path.write_text(html_str, encoding="utf-8")
-            return Response(
-                content=html_str.encode("utf-8"),
-                media_type="text/html",
-                headers={
-                    "Content-Disposition": f'attachment; filename="Angebot_{req.offer_number}.html"'
-                },
-            )
+        try:
+            if req.mode == "pdf":
+                pdf_path = _offer_dir(req.offer_number) / f"Angebot_{req.offer_number}.pdf"
+                pdf_bytes = render_offer(req.markdown, config, output_path=pdf_path)
+                return Response(
+                    content=pdf_bytes,
+                    media_type="application/pdf",
+                    headers={
+                        "Content-Disposition": f'attachment; filename="Angebot_{req.offer_number}.pdf"'
+                    },
+                )
+            else:
+                from .renderer import render_markdown_to_html
+                html_str = render_markdown_to_html(req.markdown, config)
+                html_path = _offer_dir(req.offer_number) / f"Angebot_{req.offer_number}.html"
+                html_path.write_text(html_str, encoding="utf-8")
+                return Response(
+                    content=html_str.encode("utf-8"),
+                    media_type="text/html",
+                    headers={
+                        "Content-Disposition": f'attachment; filename="Angebot_{req.offer_number}.html"'
+                    },
+                )
+        except Exception as exc:
+            raise HTTPException(status_code=500, detail=f"Rendering fehlgeschlagen: {exc}") from exc
 
     if req.form_data is None:
         raise HTTPException(status_code=422, detail="Formulardaten fehlen fuer die Markdown-Erzeugung.")
 
-    form_data = _build_form_data(req.form_data)
-    ai_response = (req.ai_response or "").strip()
-    if ai_response:
-        try:
-            ai_content = parse_ai_response(ai_response)
-        except ValueError as exc:
-            raise HTTPException(status_code=422, detail=str(exc)) from exc
-    else:
-        ai_content = None
+    try:
+        form_data = _build_form_data(req.form_data)
+        ai_response = (req.ai_response or "").strip()
+        if ai_response:
+            try:
+                ai_content = parse_ai_response(ai_response)
+            except ValueError as exc:
+                raise HTTPException(status_code=422, detail=str(exc)) from exc
+        else:
+            ai_content = None
+        markdown = generate_offer(form_data, config, user_profile, ai_content=ai_content)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Markdown-Erzeugung fehlgeschlagen: {exc}") from exc
 
-    markdown = generate_offer(form_data, config, user_profile, ai_content=ai_content)
     md_path = _offer_dir(req.offer_number) / f"Angebot_{req.offer_number}.md"
     md_path.write_text(markdown, encoding="utf-8")
     return RenderMarkdownResponse(markdown=markdown, offer_number=req.offer_number)
