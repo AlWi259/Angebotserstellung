@@ -5,7 +5,7 @@ RUN apt-get update && \
     apt-get install -y curl \
       libpango-1.0-0 libpangoft2-1.0-0 libpangocairo-1.0-0 \
       libharfbuzz0b libcairo2 libcairo-gobject2 \
-      libgdk-pixbuf2.0-0 libffi-dev libxml2 libxslt1.1 \
+      libgdk-pixbuf-xlib-2.0-0 libffi-dev libxml2 libxslt1.1 \
       shared-mime-info fontconfig fonts-urw-base35 && \
     curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
     apt-get install -y nodejs && \
