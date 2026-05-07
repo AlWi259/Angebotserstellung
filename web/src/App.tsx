@@ -36,8 +36,10 @@ type EinschaetzungRow = {
 type LineItem = {
   description: string;
   unit: string;
+  type: "days" | "fixed";
   rate: number;
   days: number;
+  fixed_amount: number;
 };
 
 type OfferDraft = {
@@ -62,6 +64,7 @@ type OfferDraft = {
   leistungsbeschreibung: string;
   leistungsausschluesse: string;
   line_items: LineItem[];
+  discount_percent: number;
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -102,6 +105,7 @@ const initialDraft: OfferDraft = {
   leistungsbeschreibung: "",
   leistungsausschluesse: "./.",
   line_items: [],
+  discount_percent: 0,
 };
 
 // ─── App ──────────────────────────────────────────────────────────────────────
@@ -186,7 +190,7 @@ function App() {
   const addLineItem = () =>
     setDraft((d) => ({
       ...d,
-      line_items: [...d.line_items, { description: "", unit: "Tag(e)", rate: 1300, days: 1 }],
+      line_items: [...d.line_items, { description: "", unit: "Tag(e)", type: "days", rate: 1300, days: 1, fixed_amount: 0 }],
     }));
 
   const removeLineItem = (i: number) =>
@@ -247,6 +251,7 @@ function App() {
         location_mode: draft.location_mode,
         line_items: draft.line_items,
         leistungsausschluesse: draft.leistungsausschluesse,
+        discount_percent: draft.discount_percent,
       };
 
       // Step 1: generate markdown
@@ -724,6 +729,18 @@ function App() {
                         <div key={i} className="canvas-lineitem">
                           <div className="canvas-lineitem__header">
                             <span className="canvas-dynamic-row__nr">Position {i + 1}</span>
+                            <div className="canvas-type-toggle">
+                              <button
+                                type="button"
+                                className={`canvas-type-btn ${item.type === "days" ? "is-active" : ""}`}
+                                onClick={() => setDraft((d) => ({ ...d, line_items: d.line_items.map((it, j) => j === i ? { ...it, type: "days" } : it) }))}
+                              >T&amp;M</button>
+                              <button
+                                type="button"
+                                className={`canvas-type-btn ${item.type === "fixed" ? "is-active" : ""}`}
+                                onClick={() => setDraft((d) => ({ ...d, line_items: d.line_items.map((it, j) => j === i ? { ...it, type: "fixed" } : it) }))}
+                              >Fixpreis</button>
+                            </div>
                             <button
                               type="button"
                               className="canvas-remove-btn"
@@ -735,50 +752,77 @@ function App() {
                           </div>
                           <label className="canvas-field">
                             <span>Leistungsbeschreibung</span>
-                            <input
-                              value={item.description}
-                              onChange={handleLineItem(i, "description")}
-                            />
+                            <input value={item.description} onChange={handleLineItem(i, "description")} />
                           </label>
-                          <div className="canvas-field-row">
+                          {item.type === "fixed" ? (
                             <label className="canvas-field">
-                              <span>Tagessatz (EUR)</span>
+                              <span>Fixbetrag (EUR)</span>
                               <input
                                 type="number"
                                 min={0}
-                                step={50}
-                                value={item.rate}
-                                onChange={handleLineItem(i, "rate")}
+                                step={100}
+                                value={item.fixed_amount}
+                                onChange={handleLineItem(i, "fixed_amount")}
                               />
                             </label>
-                            <label className="canvas-field">
-                              <span>Tage</span>
-                              <input
-                                type="number"
-                                min={0}
-                                step={0.5}
-                                value={item.days}
-                                onChange={handleLineItem(i, "days")}
-                              />
-                            </label>
-                          </div>
+                          ) : (
+                            <div className="canvas-field-row">
+                              <label className="canvas-field">
+                                <span>Tagessatz (EUR)</span>
+                                <input type="number" min={0} step={50} value={item.rate} onChange={handleLineItem(i, "rate")} />
+                              </label>
+                              <label className="canvas-field">
+                                <span>Tage</span>
+                                <input type="number" min={0} step={0.5} value={item.days} onChange={handleLineItem(i, "days")} />
+                              </label>
+                            </div>
+                          )}
                           <div className="canvas-lineitem__amount">
-                            Betrag: <strong>{fmtEur(item.rate * item.days)}</strong>
+                            Betrag: <strong>{item.type === "fixed" ? fmtEur(item.fixed_amount) : fmtEur(item.rate * item.days)}</strong>
                           </div>
                         </div>
                       ))}
-                      {draft.line_items.length > 0 && (
-                        <div className="canvas-lineitem__total">
-                          Gesamt (netto):{" "}
-                          <strong>
-                            {fmtEur(draft.line_items.reduce((s, i) => s + i.rate * i.days, 0))}
-                          </strong>
-                        </div>
-                      )}
                       <button type="button" className="canvas-add-btn" onClick={addLineItem}>
                         <Plus className="h-3.5 w-3.5" />
                         Position hinzufügen
                       </button>
+                      {draft.line_items.length > 0 && (() => {
+                        const subtotal = draft.line_items.reduce((s, it) => s + (it.type === "fixed" ? it.fixed_amount : it.rate * it.days), 0);
+                        const discountAmt = subtotal * draft.discount_percent / 100;
+                        const total = subtotal - discountAmt;
+                        return (
+                          <div className="canvas-discount-block">
+                            <label className="canvas-discount-toggle">
+                              <input
+                                type="checkbox"
+                                checked={draft.discount_percent > 0}
+                                onChange={(e) => setDraft((d) => ({ ...d, discount_percent: e.target.checked ? 10 : 0 }))}
+                              />
+                              <span>Fake-Rabatt anzeigen</span>
+                              {draft.discount_percent > 0 && (
+                                <input
+                                  type="number"
+                                  min={1}
+                                  max={50}
+                                  value={draft.discount_percent}
+                                  onChange={(e) => setDraft((d) => ({ ...d, discount_percent: parseFloat(e.target.value) || 0 }))}
+                                  className="canvas-discount-pct"
+                                />
+                              )}
+                              {draft.discount_percent > 0 && <span>%</span>}
+                            </label>
+                            {draft.discount_percent > 0 && (
+                              <div className="canvas-lineitem__total">
+                                Zwischensumme: <strong>{fmtEur(subtotal)}</strong>
+                                {" · "}Rabatt: <strong>– {fmtEur(discountAmt)}</strong>
+                              </div>
+                            )}
+                            <div className="canvas-lineitem__total">
+                              Gesamt (netto): <strong>{fmtEur(total)}</strong>
+                            </div>
+                          </div>
+                        );
+                      })()}
                     </div>
                   </details>
                 </section>

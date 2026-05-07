@@ -180,6 +180,22 @@ projekt: {{ project_name }}
           <td>{{ item.amount_formatted }}</td>
         </tr>
 {% endfor %}
+{% if pricing["has_discount"] %}
+        <tr class="pricing-subtotal-row">
+          <td>Zwischensumme</td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td>{{ pricing["subtotal_formatted"] }}</td>
+        </tr>
+        <tr class="pricing-discount-row">
+          <td>Kundenrabatt ({{ pricing["discount_percent"] }}%)</td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td>– {{ pricing["discount_formatted"] }}</td>
+        </tr>
+{% endif %}
         <tr class="pricing-total-row">
           <td>Gesamt (netto)</td>
           <td></td>

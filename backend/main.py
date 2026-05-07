@@ -95,8 +95,10 @@ if _FRONTEND_DIR.exists():
 class LineItem(BaseModel):
     description: str
     unit: str = "Tag(e)"
-    rate: float
-    days: float
+    type: str = "days"        # "days" = T&M, "fixed" = Fixpreis
+    rate: float = 0
+    days: float = 0
+    fixed_amount: float = 0
 
 
 class OfferFormPayload(BaseModel):
@@ -121,6 +123,7 @@ class OfferFormPayload(BaseModel):
     location_mode: str = "remote"
     line_items: list[LineItem] = []
     leistungsausschluesse: Optional[str] = None
+    discount_percent: float = 0
 
 
 class PromptRequest(OfferFormPayload):
@@ -363,6 +366,7 @@ def _build_form_data(req: OfferFormPayload) -> dict:
         "location_mode": req.location_mode,
         "line_items": [item.model_dump() for item in req.line_items],
         "leistungsausschluesse": req.leistungsausschluesse,
+        "discount_percent": req.discount_percent,
     }
 
 

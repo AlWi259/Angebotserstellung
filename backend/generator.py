@@ -60,38 +60,52 @@ def _fmt_eur(amount: float) -> str:
     return f"{formatted} EUR"
 
 
-def _build_pricing_rows(line_items: list[dict[str, Any]]) -> dict[str, Any]:
-    if not line_items:
-        return {
-            "items": [],
-            "total_amount": 0.0,
-            "total_formatted": _fmt_eur(0),
-        }
-
+def _build_pricing_rows(line_items: list[dict[str, Any]], discount_percent: float = 0) -> dict[str, Any]:
     items: list[dict[str, Any]] = []
-    total_amount = 0.0
+    subtotal = 0.0
     for item in line_items:
-        rate = float(item.get("rate", 0))
-        days = float(item.get("days", 0))
-        amount = rate * days
-        total_amount += amount
-        items.append(
-            {
+        item_type = item.get("type", "days")
+        if item_type == "fixed":
+            amount = float(item.get("fixed_amount", 0))
+            items.append({
+                "description": item.get("description", ""),
+                "unit": "Pauschal",
+                "is_fixed": True,
+                "rate_formatted": "–",
+                "days_display": "–",
+                "amount": amount,
+                "amount_formatted": _fmt_eur(amount),
+            })
+        else:
+            rate = float(item.get("rate", 0))
+            days = float(item.get("days", 0))
+            amount = rate * days
+            items.append({
                 "description": item.get("description", ""),
                 "unit": item.get("unit", "Tag(e)"),
+                "is_fixed": False,
                 "rate": rate,
                 "days": days,
                 "amount": amount,
                 "rate_formatted": _fmt_eur(rate),
                 "days_display": f"{days:g}",
                 "amount_formatted": _fmt_eur(amount),
-            }
-        )
+            })
+        subtotal += amount
+
+    discount_amount = round(subtotal * discount_percent / 100, 2) if discount_percent > 0 else 0.0
+    total = subtotal - discount_amount
 
     return {
         "items": items,
-        "total_amount": total_amount,
-        "total_formatted": _fmt_eur(total_amount),
+        "subtotal": subtotal,
+        "subtotal_formatted": _fmt_eur(subtotal),
+        "has_discount": discount_percent > 0,
+        "discount_percent": int(discount_percent),
+        "discount_amount": discount_amount,
+        "discount_formatted": _fmt_eur(discount_amount),
+        "total_amount": total,
+        "total_formatted": _fmt_eur(total),
     }
 
 
@@ -352,7 +366,10 @@ def generate_offer(
     )
     location_mode = form_data.get("location_mode", config.defaults.location_mode)
     leistungsort_text = config.location_text(location_mode)
-    pricing = _build_pricing_rows(form_data.get("line_items", []))
+    pricing = _build_pricing_rows(
+        form_data.get("line_items", []),
+        discount_percent=float(form_data.get("discount_percent", 0)),
+    )
 
     gender = form_data.get("customer_primary_contact_gender", form_data.get("customer_gender", ""))
     contact_last_name = (

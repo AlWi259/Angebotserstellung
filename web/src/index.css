@@ -612,7 +612,68 @@ html[data-theme="dark"] .brandbar h1 {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 8px;
   margin-bottom: 8px;
+}
+
+.canvas-type-toggle {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.canvas-type-btn {
+  padding: 3px 10px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  border: 0;
+  background: transparent;
+  color: var(--text-soft);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+
+.canvas-type-btn.is-active {
+  background: var(--accent);
+  color: #fff;
+}
+
+.canvas-discount-block {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.canvas-discount-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: var(--text-soft);
+  cursor: pointer;
+}
+
+.canvas-discount-toggle input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.canvas-discount-pct {
+  width: 52px;
+  padding: 2px 6px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--surface-2);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  text-align: center;
 }
 
 .canvas-lineitem__amount {
