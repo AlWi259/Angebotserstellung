@@ -2,9 +2,11 @@ import {
   ChevronDown,
   Download,
   FileCode2,
+  FileText,
   LayoutPanelTop,
   MessageSquareText,
   Plus,
+  RefreshCw,
   Trash2,
 } from "lucide-react";
 import React from "react";
@@ -111,6 +113,7 @@ function App() {
   const [messages, setMessages] = React.useState<ChatMessage[]>(initialMessages);
   const [isLoading, setIsLoading] = React.useState(false);
   const [isExporting, setIsExporting] = React.useState(false);
+  const [isGeneratingNumber, setIsGeneratingNumber] = React.useState(false);
   const [draft, setDraft] = React.useState<OfferDraft>(initialDraft);
 
   React.useEffect(() => {
@@ -188,7 +191,25 @@ function App() {
   const removeLineItem = (i: number) =>
     setDraft((d) => ({ ...d, line_items: d.line_items.filter((_, j) => j !== i) }));
 
-  const handleExport = async (format: "html" | "pdf") => {
+  const handleGenerateNumber = async () => {
+    if (isGeneratingNumber) return;
+    setIsGeneratingNumber(true);
+    try {
+      const res = await fetch("/api/offer-number/next", { method: "POST" });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error((err as { detail?: string }).detail ?? `HTTP ${res.status}`);
+      }
+      const data = (await res.json()) as { angebotsnummer: string };
+      setDraft((d) => ({ ...d, offer_number: data.angebotsnummer }));
+    } catch (err) {
+      alert(`Angebotsnummer konnte nicht erzeugt werden: ${err instanceof Error ? err.message : err}`);
+    } finally {
+      setIsGeneratingNumber(false);
+    }
+  };
+
+  const handleExport = async (format: "markdown" | "html" | "pdf") => {
     if (isExporting) return;
     setIsExporting(true);
     try {
@@ -227,6 +248,7 @@ function App() {
         leistungsausschluesse: draft.leistungsausschluesse,
       };
 
+      // Step 1: generate markdown
       const mdRes = await fetch("/api/render", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -243,11 +265,14 @@ function App() {
       }
       const mdData = (await mdRes.json()) as { markdown: string; offer_number: string };
 
+      // Step 2: download in requested format
+      const exportMode = format === "markdown" ? "markdown_download" : format;
+      const ext = format === "markdown" ? "md" : format;
       const exportRes = await fetch("/api/render", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          mode: format,
+          mode: exportMode,
           offer_number: mdData.offer_number,
           markdown: mdData.markdown,
         }),
@@ -261,7 +286,7 @@ function App() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `Angebot_${mdData.offer_number}.${format}`;
+      a.download = `Angebot_${mdData.offer_number}.${ext}`;
       a.click();
       URL.revokeObjectURL(url);
     } catch (err) {
@@ -416,6 +441,26 @@ function App() {
                         <button
                           type="button"
                           className="canvas-export-btn"
+                          onClick={handleGenerateNumber}
+                          disabled={isGeneratingNumber}
+                          title="Nächste Angebotsnummer aus Supabase holen"
+                        >
+                          <RefreshCw className={`h-4 w-4 ${isGeneratingNumber ? "animate-spin" : ""}`} />
+                          Nr.
+                        </button>
+                        <button
+                          type="button"
+                          className="canvas-export-btn"
+                          onClick={() => handleExport("markdown")}
+                          disabled={isExporting}
+                          title="Als Markdown herunterladen"
+                        >
+                          <FileText className="h-4 w-4" />
+                          MD
+                        </button>
+                        <button
+                          type="button"
+                          className="canvas-export-btn"
                           onClick={() => handleExport("html")}
                           disabled={isExporting}
                           title="Als HTML herunterladen"
@@ -431,7 +476,7 @@ function App() {
                           title="Als PDF herunterladen"
                         >
                           <Download className="h-4 w-4" />
-                          {isExporting ? "Wird erstellt…" : "PDF"}
+                          {isExporting ? "…" : "PDF"}
                         </button>
                       </div>
                     </div>

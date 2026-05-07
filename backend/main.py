@@ -133,7 +133,7 @@ class PromptResponse(BaseModel):
 
 
 class RenderRequest(BaseModel):
-    mode: Literal["markdown", "html", "pdf"] = "markdown"
+    mode: Literal["markdown", "markdown_download", "html", "pdf"] = "markdown"
     offer_number: str = Field(min_length=3)
     markdown: Optional[str] = None
     form_data: Optional[OfferFormPayload] = None
@@ -156,6 +156,53 @@ async def serve_index() -> HTMLResponse:
 @app.get("/healthz")
 async def healthz() -> dict[str, str]:
     return {"status": "ok"}
+
+
+@app.post("/api/offer-number/next")
+async def next_offer_number() -> dict[str, str]:
+    """Generate and persist the next offer number (YYYYMMDD-NN)."""
+    supabase_url = os.environ.get("SUPABASE_URL", "").strip().rstrip("/")
+    supabase_key = os.environ.get("SUPABASE_ANON_KEY", "").strip()
+    if not supabase_url or not supabase_key:
+        raise HTTPException(status_code=503, detail="Supabase nicht konfiguriert.")
+
+    import httpx  # type: ignore
+
+    today = date.today()
+    today_iso = today.isoformat()
+    date_prefix = today.strftime("%Y%m%d")
+    headers = {
+        "apikey": supabase_key,
+        "Authorization": f"Bearer {supabase_key}",
+        "Content-Type": "application/json",
+        "Prefer": "return=representation",
+    }
+
+    async with httpx.AsyncClient() as client:
+        # Find max laufnummer for today
+        sel = await client.get(
+            f"{supabase_url}/rest/v1/angebotsnummern",
+            headers=headers,
+            params={
+                "datum": f"eq.{today_iso}",
+                "select": "laufnummer",
+                "order": "laufnummer.desc",
+                "limit": "1",
+            },
+        )
+        sel.raise_for_status()
+        rows = sel.json()
+        laufnummer = (rows[0]["laufnummer"] + 1) if rows else 1
+        angebotsnummer = f"{date_prefix}-{laufnummer:02d}"
+
+        ins = await client.post(
+            f"{supabase_url}/rest/v1/angebotsnummern",
+            headers=headers,
+            json={"datum": today_iso, "laufnummer": laufnummer, "angebotsnummer": angebotsnummer},
+        )
+        ins.raise_for_status()
+
+    return {"angebotsnummer": angebotsnummer}
 
 
 @app.get("/api/profile")
@@ -211,6 +258,17 @@ async def create_prompt(req: PromptRequest) -> PromptResponse:
 async def render(req: RenderRequest):
     config = get_config()
     user_profile = get_user_profile()
+
+    if req.mode == "markdown_download":
+        if not req.markdown:
+            raise HTTPException(status_code=422, detail="Markdown fehlt.")
+        md_path = _offer_dir(req.offer_number) / f"Angebot_{req.offer_number}.md"
+        md_path.write_text(req.markdown, encoding="utf-8")
+        return Response(
+            content=req.markdown.encode("utf-8"),
+            media_type="text/markdown",
+            headers={"Content-Disposition": f'attachment; filename="Angebot_{req.offer_number}.md"'},
+        )
 
     if req.mode in ("pdf", "html"):
         if not req.markdown:
