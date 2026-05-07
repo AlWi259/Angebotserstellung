@@ -106,8 +106,8 @@ textarea {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 20px;
-  padding: 20px 24px;
+  gap: 16px;
+  padding: 14px 24px;
 }
 
 .brand-left {
@@ -226,7 +226,7 @@ html[data-theme="dark"] .brandbar h1 {
 }
 
 .assistant-card {
-  padding: 24px;
+  padding: 20px 24px;
 }
 
 .assistant-card__header {
@@ -239,9 +239,8 @@ html[data-theme="dark"] .brandbar h1 {
 
 .workspace-switch {
   display: inline-flex;
-  gap: 8px;
-  padding: 6px;
-  margin-bottom: 18px;
+  gap: 4px;
+  padding: 4px;
   border-radius: 999px;
   border: 1px solid var(--border);
   background: color-mix(in srgb, var(--surface-strong) 92%, transparent);
@@ -250,12 +249,13 @@ html[data-theme="dark"] .brandbar h1 {
 .workspace-switch__button {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   border: 0;
   border-radius: 999px;
   background: transparent;
   color: var(--text-soft);
-  padding: 10px 14px;
+  padding: 7px 14px;
+  font-size: 0.88rem;
   font-weight: 700;
   cursor: pointer;
   transition: background-color 160ms ease, color 160ms ease;
@@ -318,8 +318,8 @@ html[data-theme="dark"] .brandbar h1 {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  min-height: 420px;
-  max-height: calc(100vh - 320px);
+  min-height: 160px;
+  max-height: calc(100dvh - 340px);
   overflow-y: auto;
   padding: 6px 0 4px;
 }

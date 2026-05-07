@@ -324,28 +324,7 @@ function App() {
                 <h1>Angebotserstellung</h1>
               </div>
             </div>
-            <div className="brand-right">
-              <button
-                type="button"
-                className="theme-toggle"
-                onClick={() => setTheme((t) => (t === "dark" ? "light" : "dark"))}
-                role="switch"
-                aria-checked={theme === "dark"}
-                aria-label="Darstellung umschalten"
-                title="Light/Dark Mode umschalten"
-              >
-                <span className="theme-toggle__track" aria-hidden="true">
-                  <span className="theme-toggle__thumb" />
-                </span>
-              </button>
-              <img className="brand-logo brand-logo--light" src={brandLogoLight} alt="accantec" />
-              <img className="brand-logo brand-logo--dark" src={brandLogoDark} alt="accantec" />
-            </div>
-          </div>
-        </header>
 
-        <main className="page-content">
-          <section className="assistant-card">
             <div className="workspace-switch" role="tablist" aria-label="Arbeitsmodus">
               <button
                 type="button"
@@ -369,6 +348,28 @@ function App() {
               </button>
             </div>
 
+            <div className="brand-right">
+              <button
+                type="button"
+                className="theme-toggle"
+                onClick={() => setTheme((t) => (t === "dark" ? "light" : "dark"))}
+                role="switch"
+                aria-checked={theme === "dark"}
+                aria-label="Darstellung umschalten"
+                title="Light/Dark Mode umschalten"
+              >
+                <span className="theme-toggle__track" aria-hidden="true">
+                  <span className="theme-toggle__thumb" />
+                </span>
+              </button>
+              <img className="brand-logo brand-logo--light" src={brandLogoLight} alt="accantec" />
+              <img className="brand-logo brand-logo--dark" src={brandLogoDark} alt="accantec" />
+            </div>
+          </div>
+        </header>
+
+        <main className="page-content">
+          <section className="assistant-card">
             {mode === "chat" ? (
               <div className="single-col">
                 <div className="chat-surface">

@@ -1,7 +1,7 @@
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 import { motion } from "framer-motion";
-import { ArrowUp, FileText, Paperclip, X } from "lucide-react";
+import { ArrowUp, FileText, Mic, MicOff, Paperclip, X } from "lucide-react";
 import React from "react";
 
 import { cn } from "@/lib/utils";
@@ -371,7 +371,45 @@ export const PromptInputBox = React.forwardRef<HTMLDivElement, PromptInputBoxPro
     const [filePreviews, setFilePreviews] = React.useState<Record<string, string>>({});
     const [selectedImage, setSelectedImage] = React.useState<string | null>(null);
     const [isExtracting, setIsExtracting] = React.useState(false);
+    const [isRecording, setIsRecording] = React.useState(false);
     const uploadInputRef = React.useRef<HTMLInputElement>(null);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const recognitionRef = React.useRef<any>(null);
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const SpeechRecognitionAPI: any =
+      typeof window !== "undefined"
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ? ((window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition)
+        : undefined;
+    const speechSupported = Boolean(SpeechRecognitionAPI);
+
+    const toggleRecording = () => {
+      if (isRecording) {
+        recognitionRef.current?.stop();
+        setIsRecording(false);
+        return;
+      }
+      if (!SpeechRecognitionAPI) return;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const rec: any = new SpeechRecognitionAPI();
+      rec.lang = "de-DE";
+      rec.continuous = true;
+      rec.interimResults = false;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      rec.onresult = (event: any) => {
+        const transcript = Array.from(event.results as ArrayLike<SpeechRecognitionResult>)
+          .slice(event.resultIndex as number)
+          .map((r) => r[0].transcript)
+          .join("");
+        setInput((prev) => (prev ? `${prev} ${transcript}` : transcript));
+      };
+      rec.onerror = () => setIsRecording(false);
+      rec.onend = () => setIsRecording(false);
+      recognitionRef.current = rec;
+      rec.start();
+      setIsRecording(true);
+    };
 
     const processFile = (file: File) => {
       if (file.size > 25 * 1024 * 1024) return;
@@ -552,8 +590,28 @@ export const PromptInputBox = React.forwardRef<HTMLDivElement, PromptInputBoxPro
                   />
                 </button>
               </PromptInputAction>
+              {speechSupported && (
+                <PromptInputAction tooltip={isRecording ? "Aufnahme stoppen" : "Spracheingabe"}>
+                  <button
+                    className={cn(
+                      "flex h-10 w-10 items-center justify-center rounded-full border transition",
+                      isRecording
+                        ? "animate-pulse border-[var(--brand)]/60 bg-[var(--brand)]/15 text-[var(--brand)]"
+                        : "border-white/10 bg-white/5 text-[var(--text-secondary)] hover:border-[var(--brand)]/50 hover:text-[var(--text-primary)]",
+                    )}
+                    onClick={toggleRecording}
+                    type="button"
+                  >
+                    {isRecording ? (
+                      <MicOff className="h-[18px] w-[18px]" />
+                    ) : (
+                      <Mic className="h-[18px] w-[18px]" />
+                    )}
+                  </button>
+                </PromptInputAction>
+              )}
               <span className="text-sm text-[var(--text-muted)]">
-                {isExtracting ? "Datei wird gelesen…" : "Enter zum Senden, Shift+Enter für Umbruch"}
+                {isExtracting ? "Datei wird gelesen…" : isRecording ? "Aufnahme läuft…" : "Enter zum Senden, Shift+Enter für Umbruch"}
               </span>
             </div>
 
