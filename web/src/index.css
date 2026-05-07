@@ -1043,7 +1043,41 @@ html[data-theme="dark"] .offer-preview {
 }
 
 .message-bubble p {
-  margin: 0;
+  margin: 0 0 0.6em;
+}
+
+.message-bubble p:last-child {
+  margin-bottom: 0;
+}
+
+.message-bubble strong {
+  font-weight: 700;
+}
+
+.message-bubble em {
+  font-style: italic;
+}
+
+.message-bubble ul,
+.message-bubble ol {
+  margin: 0.4em 0 0.6em 1.4em;
+  padding: 0;
+}
+
+.message-bubble li {
+  margin-bottom: 0.25em;
+}
+
+.message-bubble code {
+  font-family: ui-monospace, monospace;
+  font-size: 0.88em;
+  background: rgba(0,0,0,0.12);
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+
+.message-bubble--user code {
+  background: rgba(255,255,255,0.2);
 }
 
 .message-bubble--assistant {

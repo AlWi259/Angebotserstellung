@@ -14,6 +14,7 @@ import React from "react";
 import brandLogoDark from "@/assets/accantec_logo_x1f_white.png";
 import brandLogoLight from "@/assets/accantec_part_of_x1f.png";
 import { PromptInputBox } from "@/components/ui/ai-prompt-box";
+import ReactMarkdown from "react-markdown";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -406,7 +407,7 @@ function App() {
                       <div
                         className={`message-bubble ${msg.role === "user" ? "message-bubble--user" : "message-bubble--assistant"}`}
                       >
-                        <p>{msg.text}</p>
+                        <ReactMarkdown>{msg.text}</ReactMarkdown>
                       </div>
                     </article>
                   ))}
