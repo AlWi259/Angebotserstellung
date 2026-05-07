@@ -1,0 +1,53 @@
+company:
+  name: "accantec information solutions GmbH"
+  address_line1: "Alstertor 17"
+  address_line2: "20095 Hamburg"
+  city: "Hamburg"
+  website: "https://www.accantec.de"
+  agb_date: "09. Oktober 2025"
+
+rates:
+  managing_consultant: 150
+  senior_consultant: 130
+  consultant: 120
+  junior_consultant: 100
+
+defaults:
+  validity_weeks: 6
+  location_mode: "remote"
+  location_text_remote: "Die Tätigkeiten des Beraters erfolgen überwiegend remote."
+  location_text_hybrid: "Die Tätigkeiten des Beraters erfolgen hybrid (remote und vor Ort beim Auftraggeber)."
+  location_text_onsite: "Die Tätigkeiten des Beraters erfolgen überwiegend vor Ort beim Auftraggeber."
+  currency: "EUR"
+
+legal:
+  neutrality_note: |
+    Die in diesem Vertragstext verwendeten Personenbezeichnungen erfolgen geschlechtsunabhängig. Sie werden ausschließlich aus Gründen der besseren Lesbarkeit verwendet.
+  praembel: |
+    Die accantec Gruppe ist ein Teil von x1F, einem führenden europäischen Anbieter für digitale Transformation im Finanzdienstleistungsbereich. Seit mehr als zwei Jahrzehnten ist accantec ein zuverlässiger Partner für exzellente Beratung und maßgeschneiderte Lösungen in den Bereichen Business Intelligence (BI), Data Science und Enterprise Software (SAP). Mit Hauptsitz in Hamburg und weiteren Standorten in Berlin, Frankfurt am Main, Heidelberg und Köln unterstützt unser Team aus über 70 engagierten Mitarbeitenden – davon über 50 erfahrene Beraterinnen und Berater – Unternehmen verschiedenster Branchen bei der erfolgreichen Umsetzung innovativer Datenstrategien.
+
+    Als Unternehmensgruppe, bestehend aus der accantec consulting GmbH sowie den Tochtergesellschaften accantec information solutions GmbH und accantec finance solutions GmbH begleiten wir unsere Kunden in allen Phasen ihrer datengetriebenen Transformation – von der Konzeption und Implementierung über den Betrieb bis hin zur kontinuierlichen Optimierung ihrer BI- und Data-Science-Lösungen.
+
+    Wir arbeiten sowohl mit den Plattformen marktführender Softwarehersteller wie Microsoft, SAP, IBM, AWS, Databricks und Snowflake als auch mit Open-Source-Tools wie n8n, KNIME, dbt, Qdrant, Weaviate, BAML und LangChain.
+
+    Unsere fachliche Expertise reicht von Controlling und Finanzen über Risikomanagement und Kampagnenmanagement bis hin zu Bedarfsprognosen, Anomalieerkennung und analytischem Datenqualitätsmanagement. Wir bieten umfassende Implementierungskompetenz für klassische und cloudbasierte Architekturen, sei es beim Aufbau von Data Warehouses oder beim Einsatz von Advanced Analytics und Künstlicher Intelligenz. Managed Services, die alle Aspekte vom Incident Management bis zur Schulung abdecken, runden unser Portfolio ab und bieten unseren Kunden flexible Unterstützung – vor Ort oder remote.
+  billing_terms: |
+    Der Auftragnehmer stellt seine Leistungen monatlich in Rechnung. Die Vergütung ist binnen 14 Tagen nach Eingang der Rechnung beim Auftraggeber fällig. Reisekosten werden nach Aufwand abgerechnet. Für die Nutzung des privaten PKW werden 0,60 EUR/km berechnet. Alle Preise verstehen sich zzgl. der gesetzlichen Mehrwertsteuer.
+  agb_text: "Die Allgemeinen Geschäftsbedingungen der accantec information solutions GmbH in der Fassung vom {agb_date} sind Bestandteil dieses Angebots."
+  leistungsausschluesse_default: "./."
+  vertragsschluss_intro: "Dieses Angebot ist freibleibend und gültig bis zum {validity_date}."
+  vertragsschluss_body: |
+    {vertragsschluss_intro}
+
+    Bitte senden Sie dieses Angebot bis zum oben genannten Termin unterschrieben oder eingescannt per E-Mail zurück:
+
+    {company_name}, {company_address_line1}, {company_address_line2}
+    E-Mail: {contact_email}
+
+    Ein verbindlicher Vertragsabschluss kommt in jedem Fall erst mit der schriftlichen oder elektronischen Annahmeerklärung des unterzeichneten Angebots durch den Auftragnehmer zustande.
+
+    Sollte eine Bestimmung des auf Basis dieses Angebots geschlossenen Vertrages unwirksam oder undurchführbar sein oder werden, bleibt der Vertrag im Übrigen wirksam. Die Parteien verpflichten sich, in einem solchen Fall eine Regelung zu vereinbaren, die dem wirtschaftlichen Zweck der unwirksamen Bestimmung möglichst nahekommt.
+
+    Mit seiner Unterschrift erklärt der Auftraggeber die Annahme der im Angebot aufgeführten Arbeitspakete sowie die Geltung der Allgemeinen Geschäftsbedingungen (AGB) der accantec information solutions GmbH in der Fassung vom {agb_date}.
+
+    Die vollständigen AGB können Sie hier einsehen: https://www.accantec.de/images/dokumente_pdf/251009_agb_accantec_information_solutions_gmbh.pdf

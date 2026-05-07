@@ -1,0 +1,247 @@
+---
+angebot_nr: {{ offer_number }}
+datum: {{ generation_date }}
+vertragstyp: {{ contract_type.id }}
+kunde: {{ customer_company }}
+anfragender: {{ customer_requester_name }}
+absenderprofil: {{ sender_profile.id }}
+projekt: {{ project_name }}
+---
+
+<div class="cover-page">
+  <div class="cover-recipient">
+    <p><strong>{{ customer_company }}</strong></p>
+    <p>{{ customer_contact_person }}</p>
+    <p>{{ customer_street }}</p>
+    <p>{{ customer_postal }} {{ customer_city }}</p>
+  </div>
+
+  <p class="cover-date">Hamburg, den {{ generation_date_german }}</p>
+
+  <div class="cover-subject-line">
+    <div class="cover-project">{{ project_name }}</div>
+  </div>
+  <div class="cover-offer-number">Angebot Nr. {{ offer_number }}</div>
+
+  <p class="cover-salutation">{{ salutation }},</p>
+
+  <div class="cover-letter" markdown="1">
+{% for paragraph in cover_paragraphs %}
+{{ paragraph }}
+
+{% endfor %}
+  </div>
+
+  <p class="cover-closing">{{ sender_profile.closing }}</p>
+
+  <div class="cover-signature">
+    <p>{{ sender_profile.name }}</p>
+    <p>{{ sender_profile.phone }}</p>
+  </div>
+</div>
+
+<div class="main-content body-page-reset">
+  <h1>Angebot</h1>
+
+  <div class="contract-intro">zwischen</div>
+
+  <div class="contract-party contract-party-left">
+    <p>{{ company.name }}</p>
+    <p>{{ company.address_line1 }}</p>
+    <p>{{ company.address_line2 }}</p>
+  </div>
+  <div class="contract-role">- Auftragnehmer -</div>
+
+  <div class="contract-connector">und</div>
+
+  <div class="contract-party contract-party-right">
+    <p>{{ customer_company }}</p>
+    <p>{{ customer_street }}</p>
+    <p>{{ customer_postal }} {{ customer_city }}</p>
+  </div>
+  <div class="contract-role">- Auftraggeber -</div>
+
+  <p class="neutrality-note">
+    {{ neutrality_note }}
+  </p>
+
+  <section class="document-section">
+    <h2 class="section-heading"><span class="section-number"></span><span class="section-title">Präambel</span></h2>
+    <div class="section-copy">
+      {{ praembel_html }}
+      <p>Mehr Informationen zur Unternehmensgruppe finden Sie auf unserer Homepage: <a href="{{ company.website }}">{{ company.website | replace("https://", "") | replace("http://", "") }}</a>.</p>
+    </div>
+    <div class="partner-logos">
+      <img src="partner_logos_strip.png" alt="Partnerlogos">
+    </div>
+  </section>
+
+  <section class="document-section">
+    <h2 class="section-heading"><span class="section-number"></span><span class="section-title">Kontaktperson</span></h2>
+    <p>Die folgenden Kontaktdaten werden für dieses Angebot verwendet:</p>
+    <div class="contact-summary-grid">
+      <div class="contact-card">
+        <p class="contact-card-title">Angefragt durch</p>
+        <p>{{ customer_requester_name }}</p>
+{% if customer_requester_role %}
+        <p>{{ customer_requester_role }}</p>
+{% endif %}
+{% if customer_requester_email %}
+        <p><a href="mailto:{{ customer_requester_email }}">{{ customer_requester_email }}</a></p>
+{% endif %}
+      </div>
+      <div class="contact-card">
+        <p class="contact-card-title">Ansprechpartner Auftraggeber</p>
+        <p>{{ customer_primary_contact_name }}</p>
+{% if customer_primary_contact_phone %}
+        <p>Tel.: {{ customer_primary_contact_phone }}</p>
+{% endif %}
+{% if customer_primary_contact_email %}
+        <p><a href="mailto:{{ customer_primary_contact_email }}">{{ customer_primary_contact_email }}</a></p>
+{% endif %}
+      </div>
+      <div class="contact-card">
+        <p class="contact-card-title">Versand durch</p>
+        <p>{{ sender_profile.name }}</p>
+        <p>{{ sender_profile.title }}</p>
+        <p>Tel.: {{ sender_profile.phone }}</p>
+        <p>Mail: <a href="mailto:{{ sender_profile.email }}">{{ sender_profile.email }}</a></p>
+      </div>
+    </div>
+  </section>
+
+  <section class="document-section numbered-section">
+    <h2 class="section-heading"><span class="section-number">0</span><span class="section-title">Ausgangssituation</span></h2>
+    <div class="section-copy">
+      {{ ausgangssituation_html }}
+    </div>
+  </section>
+
+  <section class="document-section numbered-section">
+    <h2 class="section-heading"><span class="section-number">1</span><span class="section-title">Unsere Einschätzung der Situation</span></h2>
+    <table class="assessment-table">
+      <thead>
+        <tr>
+          <th>Problemstellung</th>
+          <th>Unsere Empfehlung</th>
+        </tr>
+      </thead>
+      <tbody>
+{% for row in einschaetzung_rows %}
+        <tr>
+          <td>{{ row.problem }}</td>
+          <td>{{ row.empfehlung }}</td>
+        </tr>
+{% endfor %}
+      </tbody>
+    </table>
+  </section>
+
+  <section class="document-section numbered-section">
+    <h2 class="section-heading"><span class="section-number">2</span><span class="section-title">Projektziele</span></h2>
+    <p>Der Auftraggeber verfolgt mit der Beauftragung folgende Ziele:</p>
+    <ul class="project-goals">
+{% for ziel in projektziele %}
+      <li>{{ ziel }}</li>
+{% endfor %}
+    </ul>
+  </section>
+
+  <section class="document-section numbered-section">
+    <h2 class="section-heading"><span class="section-number">3</span><span class="section-title">Leistungsbeschreibung</span></h2>
+    <div class="service-description">
+      {{ leistungsbeschreibung_html }}
+    </div>
+
+    <p><strong>Leistungsausschlüsse:</strong> {{ leistungsausschluesse if leistungsausschluesse else "./." }}</p>
+    <p><strong>Leistungsort:</strong> {{ leistungsort_text }}</p>
+  </section>
+
+  <section class="document-section numbered-section">
+    <h2 class="section-heading"><span class="section-number">4</span><span class="section-title">Aufwand und Vergütung</span></h2>
+{% if pricing["items"] %}
+    <table class="pricing-table">
+      <thead>
+        <tr>
+          <th>Leistung</th>
+          <th>Einheit</th>
+          <th>Tagessatz</th>
+          <th>Tage</th>
+          <th>Betrag</th>
+        </tr>
+      </thead>
+      <tbody>
+{% for item in pricing["items"] %}
+        <tr>
+          <td>{{ item.description }}</td>
+          <td>{{ item.unit }}</td>
+          <td>{{ item.rate_formatted }}</td>
+          <td>{{ item.days_display }}</td>
+          <td>{{ item.amount_formatted }}</td>
+        </tr>
+{% endfor %}
+        <tr class="pricing-total-row">
+          <td>Gesamt (netto)</td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td>{{ pricing["total_formatted"] }}</td>
+        </tr>
+      </tbody>
+    </table>
+{% else %}
+    <p>Der Aufwand und die Vergütung werden auf Basis der vereinbarten Konditionen abgerechnet.</p>
+{% endif %}
+
+    <div class="section-copy">
+      {{ billing_terms_html }}
+    </div>
+  </section>
+
+  <section class="document-section numbered-section">
+    <h2 class="section-heading"><span class="section-number">5</span><span class="section-title">Vertragsschluss</span></h2>
+    <div class="section-copy vertragsschluss-copy">
+      {{ vertragsschluss_html }}
+    </div>
+  </section>
+
+  <div class="signature-section">
+    <table class="signature-table">
+      <tbody>
+        <tr>
+          <td>
+            <div class="signature-title">Annahmeerklärung Auftragnehmer</div>
+            <div class="signature-meta-row">
+              <span>{{ company.city }}, den</span>
+              <span>Vor- &amp; Nachname</span>
+            </div>
+            <div class="signature-line-group">
+              <div class="signature-line"></div>
+              <div class="signature-label-row">
+                <span>Ort, Datum</span>
+                <span>Name in Druckbuchstaben</span>
+                <span>Unterschrift Auftragnehmer</span>
+              </div>
+            </div>
+          </td>
+          <td>
+            <div class="signature-title">Annahmeerklärung Auftraggeber</div>
+            <div class="signature-meta-row">
+              <span>{{ customer_city }}, den</span>
+              <span>Vor- &amp; Nachname</span>
+            </div>
+            <div class="signature-line-group">
+              <div class="signature-line"></div>
+              <div class="signature-label-row">
+                <span>Ort, Datum</span>
+                <span>Name in Druckbuchstaben</span>
+                <span>Unterschrift Auftraggeber</span>
+                <span>Stempel</span>
+              </div>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>

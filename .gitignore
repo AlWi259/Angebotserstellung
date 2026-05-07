@@ -1,0 +1,35 @@
+# Secrets
+.env
+.env.*
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+.Python
+
+# Frontend build output (rebuilt by Docker/Render)
+frontend/
+web/node_modules/
+web/dist/
+
+# Generated offer output (contains customer data)
+output/
+
+# Logs
+logs/
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp

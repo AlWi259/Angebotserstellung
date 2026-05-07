@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <title>Angebot {{ offer_number }}</title>
+  <style>{{ css | safe }}</style>
+  {% if total_body_pages is not none %}
+  <style>
+    @page body {
+      @bottom-center {
+        content: counter(page) " | " "{{ total_body_pages }}";
+      }
+    }
+  </style>
+  {% endif %}
+</head>
+<body>
+
+  <!--
+    RUNNING ELEMENTS
+    Pulled from document flow into @page margin boxes via CSS `position: running(...)`.
+    Not visible in normal flow.
+  -->
+
+  <!-- Logo: top-right on every document page (suppressed on @page cover) -->
+  <div class="running-logo">
+    <img src="logo_accantec.png" alt="accantec">
+  </div>
+
+  <!-- Footer left: offer number -->
+  <div class="running-footer-nr">Angebot Nr. {{ offer_number }}</div>
+
+  <!-- Footer right: document date -->
+  <div class="running-footer-date">{{ date_german }}</div>
+
+  <!--
+    DOCUMENT BODY
+    Markdown-generated HTML is inserted here.
+    - The first .cover-page div uses CSS `page: cover`  → @page cover rule applies
+      (Briefblock.png background, no running logo/footer).
+    - All following content uses the default @page rule
+      (running logo top-right, footer with Angebot-Nr / page / date).
+  -->
+  {{ body | safe }}
+
+</body>
+</html>
