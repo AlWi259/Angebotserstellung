@@ -1,12 +1,9 @@
 import {
   ChevronDown,
-  FileOutput,
   LayoutPanelTop,
   MessageSquareText,
-  MoonStar,
   Plus,
   Trash2,
-  WandSparkles,
 } from "lucide-react";
 import React from "react";
 
@@ -62,65 +59,13 @@ type OfferDraft = {
   line_items: LineItem[];
 };
 
-// ─── Fixed company / sender data (mirrors config/company.yaml + user_profile.yaml) ───
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const COMPANY = {
-  name: "accantec information solutions GmbH",
-  address_line1: "Alstertor 17",
-  address_line2: "20095 Hamburg",
-  city: "Hamburg",
-  website: "https://www.accantec.de",
-  agb_date: "09. Oktober 2025",
-  agb_url:
-    "https://www.accantec.de/images/dokumente_pdf/251009_agb_accantec_information_solutions_gmbh.pdf",
-};
+function fmtEur(amount: number): string {
+  return `${amount.toLocaleString("de-DE", { minimumFractionDigits: 0, maximumFractionDigits: 0 })} EUR`;
+}
 
-const SENDER = {
-  name: "Alexander Winkelmann",
-  title: "Consultant",
-  email: "a.winkelmann@accantec.com",
-  phone: "+49 151 6851 8009",
-  closing: "Mit freundlichen Grüßen",
-};
-
-const PRAEMBEL_PARAGRAPHS = [
-  "Die accantec Gruppe ist ein Teil von x1F, einem führenden europäischen Anbieter für digitale Transformation im Finanzdienstleistungsbereich. Seit mehr als zwei Jahrzehnten ist accantec ein zuverlässiger Partner für exzellente Beratung und maßgeschneiderte Lösungen in den Bereichen Business Intelligence (BI), Data Science und Enterprise Software (SAP). Mit Hauptsitz in Hamburg und weiteren Standorten in Berlin, Frankfurt am Main, Heidelberg und Köln unterstützt unser Team aus über 70 engagierten Mitarbeitenden – davon über 50 erfahrene Beraterinnen und Berater – Unternehmen verschiedenster Branchen bei der erfolgreichen Umsetzung innovativer Datenstrategien.",
-  "Als Unternehmensgruppe, bestehend aus der accantec consulting GmbH sowie den Tochtergesellschaften accantec information solutions GmbH und accantec finance solutions GmbH begleiten wir unsere Kunden in allen Phasen ihrer datengetriebenen Transformation – von der Konzeption und Implementierung über den Betrieb bis hin zur kontinuierlichen Optimierung ihrer BI- und Data-Science-Lösungen.",
-  "Wir arbeiten sowohl mit den Plattformen marktführender Softwarehersteller wie Microsoft, SAP, IBM, AWS, Databricks und Snowflake als auch mit Open-Source-Tools wie n8n, KNIME, dbt, Qdrant, Weaviate, BAML und LangChain.",
-  "Unsere fachliche Expertise reicht von Controlling und Finanzen über Risikomanagement und Kampagnenmanagement bis hin zu Bedarfsprognosen, Anomalieerkennung und analytischem Datenqualitätsmanagement. Wir bieten umfassende Implementierungskompetenz für klassische und cloudbasierte Architekturen, sei es beim Aufbau von Data Warehouses oder beim Einsatz von Advanced Analytics und Künstlicher Intelligenz. Managed Services, die alle Aspekte vom Incident Management bis zur Schulung abdecken, runden unser Portfolio ab und bieten unseren Kunden flexible Unterstützung – vor Ort oder remote.",
-];
-
-const BILLING_TERMS =
-  "Der Auftragnehmer stellt seine Leistungen monatlich in Rechnung. Die Vergütung ist binnen 14 Tagen nach Eingang der Rechnung beim Auftraggeber fällig. Reisekosten werden nach Aufwand abgerechnet. Für die Nutzung des privaten PKW werden 0,60 EUR/km berechnet. Alle Preise verstehen sich zzgl. der gesetzlichen Mehrwertsteuer.";
-
-const NEUTRALITY_NOTE =
-  "Die in diesem Vertragstext verwendeten Personenbezeichnungen erfolgen geschlechtsunabhängig. Sie werden ausschließlich aus Gründen der besseren Lesbarkeit verwendet.";
-
-const LOCATION_TEXTS: Record<LocationMode, string> = {
-  remote: "Die Tätigkeiten des Beraters erfolgen überwiegend remote.",
-  hybrid: "Die Tätigkeiten des Beraters erfolgen hybrid (remote und vor Ort beim Auftraggeber).",
-  onsite: "Die Tätigkeiten des Beraters erfolgen überwiegend vor Ort beim Auftraggeber.",
-};
-
-const MONTHS_DE = [
-  "",
-  "Januar",
-  "Februar",
-  "März",
-  "April",
-  "Mai",
-  "Juni",
-  "Juli",
-  "August",
-  "September",
-  "Oktober",
-  "November",
-  "Dezember",
-];
-
-const VALIDITY_WEEKS = 6;
-
-// ─── Initial data ─────────────────────────────────────────────────────────────
+// ─── Initial state ────────────────────────────────────────────────────────────
 
 const initialMessages: ChatMessage[] = [
   {
@@ -131,323 +76,28 @@ const initialMessages: ChatMessage[] = [
 ];
 
 const initialDraft: OfferDraft = {
-  offer_number: "20260507-01",
-  project_name: "Azure AI Foundry Einführung",
+  offer_number: "",
+  project_name: "",
   location_mode: "remote",
-  customer_company: "Bestandskunde Nord GmbH",
-  customer_street: "Musterstraße 1",
-  customer_postal: "20095",
-  customer_city: "Hamburg",
-  customer_primary_contact_gender: "Herr",
-  customer_primary_contact_name: "Max Mustermann",
-  customer_primary_contact_phone: "+49 40 1234567",
-  customer_primary_contact_email: "m.mustermann@kunde.example",
-  customer_requester_name: "Max Mustermann",
-  customer_requester_role: "Projektleitung",
-  customer_requester_email: "m.mustermann@kunde.example",
-  cover_paragraphs: [
-    "vielen Dank für Ihr Interesse an einer Zusammenarbeit mit der accantec information solutions GmbH. Wir freuen uns, Ihnen hiermit unser Angebot für das angefragte Vorhaben zu unterbreiten.",
-    "Auf Basis Ihrer Anfrage zum Projekt „Azure AI Foundry Einführung“ haben wir die Ausgangssituation strukturiert aufbereitet und den vorgeschlagenen Leistungsumfang beschrieben.",
-    "Für Rückfragen stehen wir Ihnen jederzeit gerne zur Verfügung und freuen uns auf die weitere Abstimmung.",
-  ],
-  ausgangssituation:
-    "Der Auftraggeber Bestandskunde Nord GmbH hat folgenden Handlungsbedarf identifiziert: Begleitung bei der Einführung eines belastbaren Azure-AI-Foundry-Setups inklusive Zielbild, Governance und erster Umsetzungsstrecke.\n\nDiese Situation erfordert eine strukturierte Analyse und gezielte Maßnahmen, um die definierten Projektziele zu erreichen.\n\naccantec bringt die notwendige Expertise mit, um Bestandskunde Nord GmbH in diesem Vorhaben kompetent zu begleiten.",
-  einschaetzung_rows: [
-    {
-      problem: "Die bestehende KI-Infrastruktur ist nicht ausreichend strukturiert dokumentiert.",
-      empfehlung:
-        "Wir führen eine fokussierte Ist-Analyse durch und leiten daraus einen belastbaren Maßnahmenplan ab.",
-    },
-    {
-      problem:
-        "Relevante Anforderungen, Prozesse und Verantwortlichkeiten sind noch nicht konsistent abgestimmt.",
-      empfehlung:
-        "Wir schaffen Transparenz über Ziele, Rollen und Umsetzungsprioritäten und sichern die Abstimmung mit den Stakeholdern ab.",
-    },
-    {
-      problem: "Für die erfolgreiche Umsetzung fehlt ein klar gegliederter Leistungsrahmen.",
-      empfehlung:
-        "Wir strukturieren das Vorhaben in konkrete Arbeitspakete und begleiten die Umsetzung methodisch und fachlich.",
-    },
-  ],
-  projektziele: [
-    "Transparenz über Ausgangssituation, Anforderungen und Handlungsfelder herstellen",
-    "Ein belastbares Zielbild für die weitere Projektumsetzung definieren",
-    "Konkrete Maßnahmen, Verantwortlichkeiten und Prioritäten ableiten",
-    "Die Umsetzung mit fachlicher und methodischer Beratung absichern",
-  ],
-  leistungsbeschreibung:
-    "### Phase 1: Analyse und Strukturierung\n\n- Sichtung der Ausgangssituation und Einordnung der zentralen Herausforderungen\n- Abstimmung mit den relevanten Ansprechpartnern auf Kundenseite\n- Strukturierung der Anforderungen, Abhängigkeiten und Rahmenbedingungen\n- Ableitung eines umsetzbaren Vorgehensmodells\n\n### Phase 2: Konzeption und Umsetzungsvorbereitung\n\n- Konkretisierung der vereinbarten Arbeitspakete und Ergebnisse\n- Vorbereitung der fachlichen und organisatorischen Umsetzung\n- Abstimmung der Prioritäten und des weiteren Projektvorgehens\n- Dokumentation der Ergebnisse für die nächsten Projektphasen\n\n### Phase 3: Begleitung und Qualitätssicherung\n\n- Fachliche Begleitung der vereinbarten Maßnahmen\n- Regelmäßige Reviews und Abstimmungen mit dem Auftraggeber\n- Qualitätssicherung der Ergebnisse und Übergabe der Dokumentation\n- Sicherstellung des Wissenstransfers in die Organisation",
+  customer_company: "",
+  customer_street: "",
+  customer_postal: "",
+  customer_city: "",
+  customer_primary_contact_gender: "",
+  customer_primary_contact_name: "",
+  customer_primary_contact_phone: "",
+  customer_primary_contact_email: "",
+  customer_requester_name: "",
+  customer_requester_role: "",
+  customer_requester_email: "",
+  cover_paragraphs: ["", "", ""],
+  ausgangssituation: "",
+  einschaetzung_rows: [],
+  projektziele: [],
+  leistungsbeschreibung: "",
   leistungsausschluesse: "./.",
-  line_items: [
-    { description: "Analyse und Zielbildentwicklung", unit: "Tag(e)", rate: 1300, days: 4 },
-    {
-      description: "Fachliche Konzeption und Umsetzungsbegleitung",
-      unit: "Tag(e)",
-      rate: 1300,
-      days: 8,
-    },
-  ],
+  line_items: [],
 };
-
-// ─── Utilities ────────────────────────────────────────────────────────────────
-
-function escapeHtml(text: string): string {
-  return String(text)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
-
-function formatDateGerman(d: Date): string {
-  return `${d.getDate()}. ${MONTHS_DE[d.getMonth() + 1]} ${d.getFullYear()}`;
-}
-
-function computeValidityDate(): Date {
-  const d = new Date();
-  d.setDate(d.getDate() + VALIDITY_WEEKS * 7);
-  return d;
-}
-
-function buildSalutation(gender: string, name: string): string {
-  const lastName = name.trim().split(" ").at(-1) ?? name;
-  const g = gender.toLowerCase();
-  if (["herr", "m", "male", "männlich"].includes(g)) return `Sehr geehrter Herr ${escapeHtml(lastName)}`;
-  if (["frau", "f", "female", "weiblich"].includes(g)) return `Sehr geehrte Frau ${escapeHtml(lastName)}`;
-  return "Sehr geehrte Damen und Herren";
-}
-
-function fmtEur(amount: number): string {
-  return `${amount.toLocaleString("de-DE", { minimumFractionDigits: 0, maximumFractionDigits: 0 })} EUR`;
-}
-
-function renderMarkdown(md: string): string {
-  if (!md) return "";
-  const out: string[] = [];
-  let inUl = false;
-  for (const line of md.split("\n")) {
-    const t = line.trimStart();
-    if (t.startsWith("### ")) {
-      if (inUl) { out.push("</ul>"); inUl = false; }
-      out.push(`<h3 class="prev-h3">${escapeHtml(t.slice(4).trim())}</h3>`);
-    } else if (t.startsWith("## ")) {
-      if (inUl) { out.push("</ul>"); inUl = false; }
-      out.push(`<h2 class="prev-h2">${escapeHtml(t.slice(3).trim())}</h2>`);
-    } else if (t.startsWith("- ")) {
-      if (!inUl) { out.push('<ul class="prev-ul">'); inUl = true; }
-      out.push(`<li>${escapeHtml(t.slice(2).trim())}</li>`);
-    } else if (t === "") {
-      if (inUl) { out.push("</ul>"); inUl = false; }
-    } else {
-      if (inUl) { out.push("</ul>"); inUl = false; }
-      out.push(`<p>${escapeHtml(t)}</p>`);
-    }
-  }
-  if (inUl) out.push("</ul>");
-  return out.join("");
-}
-
-function renderPlainParagraphs(text: string): string {
-  if (!text) return "";
-  return text
-    .split(/\n\n+/)
-    .map((p) => `<p>${escapeHtml(p.replace(/\n/g, " ").trim())}</p>`)
-    .filter((p) => p !== "<p></p>")
-    .join("");
-}
-
-// ─── Preview HTML builder ─────────────────────────────────────────────────────
-
-function buildOfferPreviewHtml(draft: OfferDraft): string {
-  const today = new Date();
-  const validityDate = computeValidityDate();
-  const todayGerman = formatDateGerman(today);
-  const validityDateGerman = formatDateGerman(validityDate);
-  const salutation = buildSalutation(
-    draft.customer_primary_contact_gender,
-    draft.customer_primary_contact_name,
-  );
-
-  let totalAmount = 0;
-  const pricingRows = draft.line_items
-    .map((item) => {
-      const amount = item.rate * item.days;
-      totalAmount += amount;
-      return `<tr>
-          <td>${escapeHtml(item.description)}</td>
-          <td>${escapeHtml(item.unit)}</td>
-          <td>${fmtEur(item.rate)}</td>
-          <td>${item.days % 1 === 0 ? item.days : item.days.toFixed(1)}</td>
-          <td>${fmtEur(amount)}</td>
-        </tr>`;
-    })
-    .join("");
-
-  const praembelHtml =
-    PRAEMBEL_PARAGRAPHS.map((p) => `<p>${escapeHtml(p)}</p>`).join("") +
-    `<p>Mehr Informationen zur Unternehmensgruppe finden Sie auf unserer Homepage: <a href="${escapeHtml(COMPANY.website)}">${escapeHtml(COMPANY.website.replace("https://", ""))}</a>.</p>`;
-
-  const vertragsschlussHtml = `
-    <p>Dieses Angebot ist freibleibend und gültig bis zum ${escapeHtml(validityDateGerman)}.</p>
-    <p>Bitte senden Sie dieses Angebot bis zum oben genannten Termin unterschrieben oder eingescannt per E-Mail zurück:</p>
-    <p>${escapeHtml(COMPANY.name)}, ${escapeHtml(COMPANY.address_line1)}, ${escapeHtml(COMPANY.address_line2)}<br>
-       E-Mail: <a href="mailto:${escapeHtml(SENDER.email)}">${escapeHtml(SENDER.email)}</a></p>
-    <p>Ein verbindlicher Vertragsabschluss kommt in jedem Fall erst mit der schriftlichen oder elektronischen Annahmeerklärung des unterzeichneten Angebots durch den Auftragnehmer zustande.</p>
-    <p>Sollte eine Bestimmung des auf Basis dieses Angebots geschlossenen Vertrages unwirksam oder undurchführbar sein oder werden, bleibt der Vertrag im Übrigen wirksam. Die Parteien verpflichten sich, in einem solchen Fall eine Regelung zu vereinbaren, die dem wirtschaftlichen Zweck der unwirksamen Bestimmung möglichst nahekommt.</p>
-    <p>Mit seiner Unterschrift erklärt der Auftraggeber die Annahme der im Angebot aufgeführten Arbeitspakete sowie die Geltung der Allgemeinen Geschäftsbedingungen (AGB) der ${escapeHtml(COMPANY.name)} in der Fassung vom ${escapeHtml(COMPANY.agb_date)}.</p>
-    <p>Die vollständigen AGB können Sie hier einsehen: <a href="${escapeHtml(COMPANY.agb_url)}">${escapeHtml(COMPANY.agb_url)}</a></p>`;
-
-  return `
-<div class="prev-cover">
-  <div class="prev-recipient">
-    <p><strong>${escapeHtml(draft.customer_company)}</strong></p>
-    <p>${escapeHtml(draft.customer_primary_contact_name)}</p>
-    <p>${escapeHtml(draft.customer_street)}</p>
-    <p>${escapeHtml(draft.customer_postal)} ${escapeHtml(draft.customer_city)}</p>
-  </div>
-  <p class="prev-cover-date">Hamburg, den ${escapeHtml(todayGerman)}</p>
-  <div class="prev-subject-wrap">
-    <div class="prev-subject-title">${escapeHtml(draft.project_name)}</div>
-  </div>
-  <div class="prev-offer-nr">Angebot Nr. ${escapeHtml(draft.offer_number)}</div>
-  <p class="prev-salutation">${salutation},</p>
-  <div class="prev-cover-letter">
-    ${draft.cover_paragraphs.map((p) => `<p>${escapeHtml(p)}</p>`).join("")}
-  </div>
-  <p class="prev-closing">${escapeHtml(SENDER.closing)}</p>
-  <div class="prev-signature-name">
-    <p>${escapeHtml(SENDER.name)}</p>
-    <p>${escapeHtml(SENDER.phone)}</p>
-  </div>
-</div>
-
-<div class="prev-main">
-  <h1 class="prev-h1">Angebot</h1>
-  <div class="prev-between">zwischen</div>
-  <div class="prev-party">
-    <p>${escapeHtml(COMPANY.name)}</p>
-    <p>${escapeHtml(COMPANY.address_line1)}</p>
-    <p>${escapeHtml(COMPANY.address_line2)}</p>
-  </div>
-  <div class="prev-role">– Auftragnehmer –</div>
-  <div class="prev-connector">und</div>
-  <div class="prev-party">
-    <p>${escapeHtml(draft.customer_company)}</p>
-    <p>${escapeHtml(draft.customer_street)}</p>
-    <p>${escapeHtml(draft.customer_postal)} ${escapeHtml(draft.customer_city)}</p>
-  </div>
-  <div class="prev-role">– Auftraggeber –</div>
-  <p class="prev-neutrality">${escapeHtml(NEUTRALITY_NOTE)}</p>
-
-  <div class="prev-section">
-    <h2 class="prev-heading"><span class="prev-nr"></span><span>Präambel</span></h2>
-    <div class="prev-copy">${praembelHtml}</div>
-  </div>
-
-  <div class="prev-section">
-    <h2 class="prev-heading"><span class="prev-nr"></span><span>Kontaktperson</span></h2>
-    <p class="prev-copy-intro">Die folgenden Kontaktdaten werden für dieses Angebot verwendet:</p>
-    <div class="prev-contacts">
-      <div class="prev-contact">
-        <p class="prev-contact-title">Angefragt durch</p>
-        <p>${escapeHtml(draft.customer_requester_name)}</p>
-        ${draft.customer_requester_role ? `<p>${escapeHtml(draft.customer_requester_role)}</p>` : ""}
-        ${draft.customer_requester_email ? `<p><a href="mailto:${escapeHtml(draft.customer_requester_email)}">${escapeHtml(draft.customer_requester_email)}</a></p>` : ""}
-      </div>
-      <div class="prev-contact">
-        <p class="prev-contact-title">Ansprechpartner Auftraggeber</p>
-        <p>${escapeHtml(draft.customer_primary_contact_name)}</p>
-        ${draft.customer_primary_contact_phone ? `<p>Tel.: ${escapeHtml(draft.customer_primary_contact_phone)}</p>` : ""}
-        ${draft.customer_primary_contact_email ? `<p><a href="mailto:${escapeHtml(draft.customer_primary_contact_email)}">${escapeHtml(draft.customer_primary_contact_email)}</a></p>` : ""}
-      </div>
-      <div class="prev-contact">
-        <p class="prev-contact-title">Versand durch</p>
-        <p>${escapeHtml(SENDER.name)}</p>
-        <p>${escapeHtml(SENDER.title)}</p>
-        <p>Tel.: ${escapeHtml(SENDER.phone)}</p>
-        <p>Mail: <a href="mailto:${escapeHtml(SENDER.email)}">${escapeHtml(SENDER.email)}</a></p>
-      </div>
-    </div>
-  </div>
-
-  <div class="prev-section">
-    <h2 class="prev-heading"><span class="prev-nr">0</span><span>Ausgangssituation</span></h2>
-    <div class="prev-copy">${renderPlainParagraphs(draft.ausgangssituation)}</div>
-  </div>
-
-  <div class="prev-section">
-    <h2 class="prev-heading"><span class="prev-nr">1</span><span>Unsere Einschätzung der Situation</span></h2>
-    <table class="prev-table">
-      <thead><tr><th>Problemstellung</th><th>Unsere Empfehlung</th></tr></thead>
-      <tbody>
-        ${draft.einschaetzung_rows
-          .map((r) => `<tr><td>${escapeHtml(r.problem)}</td><td>${escapeHtml(r.empfehlung)}</td></tr>`)
-          .join("")}
-      </tbody>
-    </table>
-  </div>
-
-  <div class="prev-section">
-    <h2 class="prev-heading"><span class="prev-nr">2</span><span>Projektziele</span></h2>
-    <p class="prev-copy-intro">Der Auftraggeber verfolgt mit der Beauftragung folgende Ziele:</p>
-    <ul class="prev-ul prev-goals">
-      ${draft.projektziele.map((z) => `<li>${escapeHtml(z)}</li>`).join("")}
-    </ul>
-  </div>
-
-  <div class="prev-section">
-    <h2 class="prev-heading"><span class="prev-nr">3</span><span>Leistungsbeschreibung</span></h2>
-    <div class="prev-service">${renderMarkdown(draft.leistungsbeschreibung)}</div>
-    <p><strong>Leistungsausschlüsse:</strong> ${escapeHtml(draft.leistungsausschluesse || "./.")}</p>
-    <p><strong>Leistungsort:</strong> ${escapeHtml(LOCATION_TEXTS[draft.location_mode])}</p>
-  </div>
-
-  <div class="prev-section">
-    <h2 class="prev-heading"><span class="prev-nr">4</span><span>Aufwand und Vergütung</span></h2>
-    ${
-      draft.line_items.length > 0
-        ? `<table class="prev-table prev-pricing">
-      <thead><tr><th>Leistung</th><th>Einheit</th><th>Tagessatz</th><th>Tage</th><th>Betrag</th></tr></thead>
-      <tbody>
-        ${pricingRows}
-        <tr class="prev-total-row">
-          <td><strong>Gesamt (netto)</strong></td><td></td><td></td><td></td>
-          <td><strong>${fmtEur(totalAmount)}</strong></td>
-        </tr>
-      </tbody>
-    </table>`
-        : `<p>Der Aufwand und die Vergütung werden auf Basis der vereinbarten Konditionen abgerechnet.</p>`
-    }
-    <div class="prev-copy"><p>${escapeHtml(BILLING_TERMS)}</p></div>
-  </div>
-
-  <div class="prev-section">
-    <h2 class="prev-heading"><span class="prev-nr">5</span><span>Vertragsschluss</span></h2>
-    <div class="prev-copy prev-vertragsschluss">${vertragsschlussHtml}</div>
-  </div>
-
-  <div class="prev-sig-section">
-    <table class="prev-sig-table">
-      <tbody><tr>
-        <td>
-          <div class="prev-sig-title">Annahmeerklärung Auftragnehmer</div>
-          <div class="prev-sig-meta"><span>${escapeHtml(COMPANY.city)}, den</span><span>Vor- &amp; Nachname</span></div>
-          <div class="prev-sig-line"></div>
-          <div class="prev-sig-labels"><span>Ort, Datum</span><span>Name in Druckbuchstaben</span><span>Unterschrift Auftragnehmer</span></div>
-        </td>
-        <td>
-          <div class="prev-sig-title">Annahmeerklärung Auftraggeber</div>
-          <div class="prev-sig-meta"><span>${escapeHtml(draft.customer_city)}, den</span><span>Vor- &amp; Nachname</span></div>
-          <div class="prev-sig-line"></div>
-          <div class="prev-sig-labels"><span>Ort, Datum</span><span>Name in Druckbuchstaben</span><span>Unterschrift Auftraggeber</span><span>Stempel</span></div>
-        </td>
-      </tr></tbody>
-    </table>
-  </div>
-</div>`;
-}
 
 // ─── App ──────────────────────────────────────────────────────────────────────
 
@@ -459,12 +109,11 @@ function App() {
   const [messages, setMessages] = React.useState<ChatMessage[]>(initialMessages);
   const [isLoading, setIsLoading] = React.useState(false);
   const [draft, setDraft] = React.useState<OfferDraft>(initialDraft);
+
   React.useEffect(() => {
     document.documentElement.dataset.theme = theme;
     window.localStorage.setItem("angebot-ui-theme", theme);
   }, [theme]);
-
-  const previewHtml = React.useMemo(() => buildOfferPreviewHtml(draft), [draft]);
 
   // ── handlers ────────────────────────────────────────────────────────────────
 
@@ -536,7 +185,7 @@ function App() {
   const removeLineItem = (i: number) =>
     setDraft((d) => ({ ...d, line_items: d.line_items.filter((_, j) => j !== i) }));
 
-  const handleSend = async (message: string) => {
+  const handleSend = async (message: string, _files?: File[]) => {
     if (!message.trim()) return;
 
     const userMsg: ChatMessage = { id: crypto.randomUUID(), role: "user", text: message };
@@ -569,11 +218,7 @@ function App() {
       const msg = err instanceof Error ? err.message : "Unbekannter Fehler";
       setMessages((m) => [
         ...m,
-        {
-          id: crypto.randomUUID(),
-          role: "assistant",
-          text: `Fehler beim Verarbeiten: ${msg}`,
-        },
+        { id: crypto.randomUUID(), role: "assistant", text: `Fehler: ${msg}` },
       ]);
     } finally {
       setIsLoading(false);
@@ -588,12 +233,8 @@ function App() {
         <header className="brandbar">
           <div className="brandbar-inner">
             <div className="brand-left">
-              <div className="brand-mark">
-                <WandSparkles className="h-5 w-5 text-[var(--brand)]" />
-              </div>
               <div className="min-w-0">
                 <h1>Angebotserstellung</h1>
-                <p className="brand-subline">Chat zuerst. Canvas danach. HTML und PDF als Zielpfad.</p>
               </div>
             </div>
             <div className="brand-right">
@@ -618,33 +259,6 @@ function App() {
 
         <main className="page-content">
           <section className="assistant-card">
-            <div className="assistant-card__header">
-              <div>
-                <p className="section-eyebrow">accantec workflow</p>
-                <h2 className="section-title">
-                  {mode === "chat" ? "Beschreibe einfach das Vorhaben" : "Überarbeite den Entwurf im Canvas"}
-                </h2>
-                <p className="section-copy">
-                  {mode === "chat"
-                    ? "Ich sammle die Eckdaten im Gespräch und führe daraus den ersten Angebotsentwurf zusammen."
-                    : "Bearbeite Kundendaten, Inhalt und Preise – Präambel, Vertragsschluss und Firmendaten werden automatisch gesetzt."}
-                </p>
-              </div>
-              <div className="status-chip">
-                {isLoading ? (
-                  <>
-                    <span className="status-dot status-dot--live" />
-                    Antwort wird vorbereitet
-                  </>
-                ) : (
-                  <>
-                    <MoonStar className="h-3.5 w-3.5" />
-                    Workflow bereit
-                  </>
-                )}
-              </div>
-            </div>
-
             <div className="workspace-switch" role="tablist" aria-label="Arbeitsmodus">
               <button
                 type="button"
@@ -669,68 +283,50 @@ function App() {
             </div>
 
             {mode === "chat" ? (
-              <div className="canvas-layout">
-                {/* LEFT: Chat */}
-                <div className="chat-column">
-                  <div className="chat-surface">
-                    {messages.map((msg) => (
-                      <article
-                        key={msg.id}
-                        className={`message-row ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+              <div className="single-col">
+                <div className="chat-surface">
+                  {messages.map((msg) => (
+                    <article
+                      key={msg.id}
+                      className={`message-row ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+                    >
+                      <div
+                        className={`message-bubble ${msg.role === "user" ? "message-bubble--user" : "message-bubble--assistant"}`}
                       >
-                        <div
-                          className={`message-bubble ${msg.role === "user" ? "message-bubble--user" : "message-bubble--assistant"}`}
-                        >
-                          <p>{msg.text}</p>
-                        </div>
-                      </article>
-                    ))}
-                    {isLoading && (
-                      <div className="message-row justify-start">
-                        <div className="message-bubble message-bubble--assistant">
-                          <div className="typing-dots" aria-label="Antwort wird vorbereitet">
-                            <span />
-                            <span />
-                            <span />
-                          </div>
+                        <p>{msg.text}</p>
+                      </div>
+                    </article>
+                  ))}
+                  {isLoading && (
+                    <div className="message-row justify-start">
+                      <div className="message-bubble message-bubble--assistant">
+                        <div className="typing-dots" aria-label="Antwort wird vorbereitet">
+                          <span />
+                          <span />
+                          <span />
                         </div>
                       </div>
-                    )}
-                  </div>
-                  <div className="prompt-dock">
-                    <PromptInputBox
-                      className="mx-auto w-full"
-                      isLoading={isLoading}
-                      onSend={handleSend}
-                      placeholder="Zum Beispiel: Angebot für Azure-AI-Foundry-Einführung bei Bestandskunde Nord GmbH, Ansprechpartner Max Mustermann."
-                    />
-                  </div>
+                    </div>
+                  )}
                 </div>
-
-                {/* RIGHT: Live document */}
-                <section className="canvas-panel canvas-panel--preview">
-                  <div className="canvas-panel__header">
-                    <h3>Angebotsentwurf</h3>
-                    <p>Wird live aktualisiert während du chattest.</p>
-                  </div>
-                  <article className="offer-preview">
-                    <div
-                      className="offer-preview__inner"
-                      dangerouslySetInnerHTML={{ __html: previewHtml }}
-                    />
-                  </article>
-                </section>
+                <div className="prompt-dock">
+                  <PromptInputBox
+                    className="mx-auto w-full"
+                    isLoading={isLoading}
+                    onSend={handleSend}
+                    placeholder="Beschreibe Kunde, Vorhaben und Leistungsumfang – oder lade eine Datei hoch."
+                  />
+                </div>
               </div>
             ) : (
-              <div className="canvas-layout">
-                {/* ── LEFT: Editor ─────────────────────────────────────────── */}
+              <div className="single-col">
                 <section className="canvas-panel">
                   <div className="canvas-panel__header">
                     <h3>Inhalt bearbeiten</h3>
                     <p>Nur die Felder, die pro Angebot variieren. Präambel, Vertragsschluss und Firmendaten werden automatisch gesetzt.</p>
                   </div>
 
-                  {/* 1 – Auftraggeberdaten */}
+                  {/* Auftraggeberdaten */}
                   <details className="canvas-section" open>
                     <summary className="canvas-section__summary">
                       <span>Auftraggeberdaten</span>
@@ -817,7 +413,7 @@ function App() {
                     </div>
                   </details>
 
-                  {/* 2 – Projektdaten */}
+                  {/* Projektdaten */}
                   <details className="canvas-section" open>
                     <summary className="canvas-section__summary">
                       <span>Projektdaten</span>
@@ -834,10 +430,7 @@ function App() {
                       </label>
                       <label className="canvas-field">
                         <span>Leistungsort</span>
-                        <select
-                          value={draft.location_mode}
-                          onChange={handleField("location_mode")}
-                        >
+                        <select value={draft.location_mode} onChange={handleField("location_mode")}>
                           <option value="remote">Remote</option>
                           <option value="hybrid">Hybrid</option>
                           <option value="onsite">Vor Ort</option>
@@ -846,7 +439,7 @@ function App() {
                     </div>
                   </details>
 
-                  {/* 3 – Anschreiben */}
+                  {/* Anschreiben */}
                   <details className="canvas-section">
                     <summary className="canvas-section__summary">
                       <span>Anschreiben</span>
@@ -866,7 +459,7 @@ function App() {
                     </div>
                   </details>
 
-                  {/* 4 – Inhalt */}
+                  {/* Inhalt */}
                   <details className="canvas-section" open>
                     <summary className="canvas-section__summary">
                       <span>Inhalt</span>
@@ -962,7 +555,7 @@ function App() {
                     </div>
                   </details>
 
-                  {/* 5 – Preispositionen */}
+                  {/* Preispositionen */}
                   <details className="canvas-section" open>
                     <summary className="canvas-section__summary">
                       <span>Preispositionen</span>
@@ -1030,39 +623,6 @@ function App() {
                       </button>
                     </div>
                   </details>
-                </section>
-
-                {/* ── RIGHT: Preview ──────────────────────────────────────── */}
-                <section className="canvas-panel canvas-panel--preview">
-                  <div className="canvas-panel__header">
-                    <h3>Live-Vorschau</h3>
-                    <p>HTML ist die visuelle Wahrheit, PDF das finale Artefakt.</p>
-                  </div>
-                  <div className="offer-actions">
-                    <button
-                      type="button"
-                      className="offer-action offer-action--primary"
-                      disabled
-                      title="Export-Anbindung noch nicht verfügbar"
-                    >
-                      <FileOutput className="h-4 w-4" />
-                      HTML erzeugen
-                    </button>
-                    <button
-                      type="button"
-                      className="offer-action"
-                      disabled
-                      title="Export-Anbindung noch nicht verfügbar"
-                    >
-                      PDF erzeugen
-                    </button>
-                  </div>
-                  <article className="offer-preview">
-                    <div
-                      className="offer-preview__inner"
-                      dangerouslySetInnerHTML={{ __html: previewHtml }}
-                    />
-                  </article>
                 </section>
               </div>
             )}

@@ -1,7 +1,7 @@
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 import { motion } from "framer-motion";
-import { ArrowUp, Paperclip, X } from "lucide-react";
+import { ArrowUp, FileText, Paperclip, X } from "lucide-react";
 import React from "react";
 
 import { cn } from "@/lib/utils";
@@ -28,6 +28,9 @@ const localStyles = `
     background-color: rgba(255, 255, 255, 0.3);
   }
 `;
+
+const ACCEPT =
+  "image/*,.md,.markdown,.txt,.csv,.pdf,.xlsx,.xls,.pptx,.ppt,.docx,.doc";
 
 function useLocalStyleSheet(cssText: string) {
   React.useEffect(() => {
@@ -136,9 +139,7 @@ const PromptInputContext = React.createContext<PromptInputContextType | null>(nu
 
 function usePromptInput() {
   const context = React.useContext(PromptInputContext);
-  if (!context) {
-    throw new Error("usePromptInput must be used within a PromptInput");
-  }
+  if (!context) throw new Error("usePromptInput must be used within a PromptInput");
   return context;
 }
 
@@ -212,8 +213,7 @@ const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
 );
 PromptInput.displayName = "PromptInput";
 
-interface PromptInputTextareaProps
-  extends React.ComponentProps<typeof Textarea> {
+interface PromptInputTextareaProps extends React.ComponentProps<typeof Textarea> {
   disableAutosize?: boolean;
   placeholder?: string;
 }
@@ -229,10 +229,7 @@ const PromptInputTextarea: React.FC<PromptInputTextareaProps> = ({
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
 
   React.useEffect(() => {
-    if (disableAutosize || !textareaRef.current) {
-      return;
-    }
-
+    if (disableAutosize || !textareaRef.current) return;
     textareaRef.current.style.height = "auto";
     textareaRef.current.style.height =
       typeof maxHeight === "number"
@@ -284,7 +281,6 @@ const PromptInputAction: React.FC<PromptInputActionProps> = ({
   tooltip,
 }) => {
   const { disabled } = usePromptInput();
-
   return (
     <Tooltip>
       <TooltipTrigger asChild disabled={disabled}>
@@ -301,10 +297,7 @@ interface ImageViewDialogProps {
 }
 
 function ImageViewDialog({ imageUrl, onClose }: ImageViewDialogProps) {
-  if (!imageUrl) {
-    return null;
-  }
-
+  if (!imageUrl) return null;
   return (
     <Dialog open={Boolean(imageUrl)} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="overflow-hidden border-none bg-transparent shadow-none">
@@ -325,6 +318,35 @@ function ImageViewDialog({ imageUrl, onClose }: ImageViewDialogProps) {
   );
 }
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+const isImageFile = (file: File) => file.type.startsWith("image/");
+
+const isTextFile = (file: File) =>
+  file.type === "text/plain" ||
+  file.type === "text/markdown" ||
+  file.type === "text/csv" ||
+  /\.(md|markdown|txt|csv)$/i.test(file.name);
+
+async function extractFileText(file: File): Promise<string> {
+  if (isTextFile(file)) {
+    return new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => resolve((e.target?.result as string) ?? "");
+      reader.onerror = reject;
+      reader.readAsText(file, "utf-8");
+    });
+  }
+  const form = new FormData();
+  form.append("file", file);
+  const res = await fetch("/api/extract-text", { method: "POST", body: form });
+  if (!res.ok) throw new Error(`Fehler beim Lesen von ${file.name}`);
+  const data = (await res.json()) as { text: string };
+  return data.text;
+}
+
+// ─── PromptInputBox ───────────────────────────────────────────────────────────
+
 interface PromptInputBoxProps {
   className?: string;
   isLoading?: boolean;
@@ -333,28 +355,37 @@ interface PromptInputBoxProps {
 }
 
 export const PromptInputBox = React.forwardRef<HTMLDivElement, PromptInputBoxProps>(
-  ({ className, isLoading = false, onSend, placeholder = "Womit soll ich dir beim Angebot helfen?" }, ref) => {
+  (
+    {
+      className,
+      isLoading = false,
+      onSend,
+      placeholder = "Womit soll ich dir beim Angebot helfen?",
+    },
+    ref,
+  ) => {
     useLocalStyleSheet(localStyles);
 
     const [input, setInput] = React.useState("");
     const [files, setFiles] = React.useState<File[]>([]);
     const [filePreviews, setFilePreviews] = React.useState<Record<string, string>>({});
     const [selectedImage, setSelectedImage] = React.useState<string | null>(null);
+    const [isExtracting, setIsExtracting] = React.useState(false);
     const uploadInputRef = React.useRef<HTMLInputElement>(null);
 
-    const isImageFile = (file: File) => file.type.startsWith("image/");
-
     const processFile = (file: File) => {
-      if (!isImageFile(file) || file.size > 10 * 1024 * 1024) {
-        return;
+      if (file.size > 25 * 1024 * 1024) return;
+      setFiles((prev) => [...prev, file]);
+      if (isImageFile(file)) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          setFilePreviews((prev) => ({
+            ...prev,
+            [file.name]: event.target?.result as string,
+          }));
+        };
+        reader.readAsDataURL(file);
       }
-
-      setFiles([file]);
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        setFilePreviews({ [file.name]: event.target?.result as string });
-      };
-      reader.readAsDataURL(file);
     };
 
     const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
@@ -370,31 +401,28 @@ export const PromptInputBox = React.forwardRef<HTMLDivElement, PromptInputBoxPro
     const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
       event.preventDefault();
       event.stopPropagation();
-      const droppedFiles = Array.from(event.dataTransfer.files);
-      const imageFile = droppedFiles.find(isImageFile);
-      if (imageFile) {
-        processFile(imageFile);
-      }
+      Array.from(event.dataTransfer.files).forEach(processFile);
     };
 
     const handleRemoveFile = (index: number) => {
       const fileToRemove = files[index];
       if (fileToRemove && filePreviews[fileToRemove.name]) {
-        setFilePreviews({});
+        setFilePreviews((prev) => {
+          const next = { ...prev };
+          delete next[fileToRemove.name];
+          return next;
+        });
       }
-      setFiles([]);
+      setFiles((prev) => prev.filter((_, i) => i !== index));
     };
 
     React.useEffect(() => {
       const handlePaste = (event: ClipboardEvent) => {
         const items = event.clipboardData?.items;
-        if (!items) {
-          return;
-        }
-
-        for (let index = 0; index < items.length; index += 1) {
-          if (items[index].type.includes("image")) {
-            const file = items[index].getAsFile();
+        if (!items) return;
+        for (let i = 0; i < items.length; i += 1) {
+          if (items[i].type.includes("image")) {
+            const file = items[i].getAsFile();
             if (file) {
               event.preventDefault();
               processFile(file);
@@ -403,24 +431,47 @@ export const PromptInputBox = React.forwardRef<HTMLDivElement, PromptInputBoxPro
           }
         }
       };
-
       document.addEventListener("paste", handlePaste);
-      return () => {
-        document.removeEventListener("paste", handlePaste);
-      };
+      return () => document.removeEventListener("paste", handlePaste);
     }, []);
 
-    const handleSubmit = () => {
-      if (!input.trim() && files.length === 0) {
-        return;
-      }
+    const handleSubmit = async () => {
+      if (!input.trim() && files.length === 0) return;
 
-      onSend?.(input.trim(), files);
-      setInput("");
-      setFiles([]);
-      setFilePreviews({});
+      setIsExtracting(true);
+      try {
+        const parts: string[] = [];
+        const imageFiles: File[] = [];
+
+        for (const file of files) {
+          if (isImageFile(file)) {
+            imageFiles.push(file);
+            continue;
+          }
+          try {
+            const text = await extractFileText(file);
+            if (text.trim()) {
+              parts.push(
+                `**Dateiinhalt: ${file.name}**\n\`\`\`\n${text.slice(0, 12000)}\n\`\`\``,
+              );
+            }
+          } catch {
+            parts.push(`[${file.name} – konnte nicht gelesen werden]`);
+          }
+        }
+
+        if (input.trim()) parts.push(input.trim());
+
+        onSend?.(parts.join("\n\n"), imageFiles);
+        setInput("");
+        setFiles([]);
+        setFilePreviews({});
+      } finally {
+        setIsExtracting(false);
+      }
     };
 
+    const isBusy = isLoading || isExtracting;
     const hasContent = input.trim() !== "" || files.length > 0;
 
     return (
@@ -428,7 +479,7 @@ export const PromptInputBox = React.forwardRef<HTMLDivElement, PromptInputBoxPro
         <PromptInput
           ref={ref}
           className={className}
-          isLoading={isLoading}
+          isLoading={isBusy}
           onDragLeave={handleDragLeave}
           onDragOver={handleDragOver}
           onDrop={handleDrop}
@@ -436,14 +487,14 @@ export const PromptInputBox = React.forwardRef<HTMLDivElement, PromptInputBoxPro
           onValueChange={setInput}
           value={input}
         >
-          {files.length > 0 ? (
+          {files.length > 0 && (
             <div className="mb-2 flex flex-wrap gap-2">
               {files.map((file, index) => (
                 <div
                   key={`${file.name}-${index}`}
                   className="group relative overflow-hidden rounded-2xl border border-white/10 bg-white/5"
                 >
-                  {file.type.startsWith("image/") && filePreviews[file.name] ? (
+                  {isImageFile(file) && filePreviews[file.name] ? (
                     <button
                       className="relative h-[72px] w-[72px] overflow-hidden"
                       onClick={() => setSelectedImage(filePreviews[file.name])}
@@ -456,28 +507,32 @@ export const PromptInputBox = React.forwardRef<HTMLDivElement, PromptInputBoxPro
                       />
                       <span className="sr-only">Bildvorschau öffnen</span>
                     </button>
-                  ) : null}
+                  ) : (
+                    <div className="flex max-w-[180px] items-center gap-2 px-3 py-3">
+                      <FileText className="h-4 w-4 shrink-0 text-[var(--brand)]" />
+                      <span className="truncate text-sm text-[var(--text-primary)]">
+                        {file.name}
+                      </span>
+                    </div>
+                  )}
                   <button
-                    className="absolute right-2 top-2 rounded-full border border-white/10 bg-black/55 p-1 text-white transition hover:bg-black/75"
+                    className="absolute right-1.5 top-1.5 rounded-full border border-white/10 bg-black/55 p-1 text-white transition hover:bg-black/75"
                     onClick={() => handleRemoveFile(index)}
                     type="button"
                   >
-                    <X className="h-3.5 w-3.5" />
+                    <X className="h-3 w-3" />
                     <span className="sr-only">Datei entfernen</span>
                   </button>
                 </div>
               ))}
             </div>
-          ) : null}
+          )}
 
-          <PromptInputTextarea
-            className="min-h-[56px]"
-            placeholder={placeholder}
-          />
+          <PromptInputTextarea className="min-h-[56px]" placeholder={placeholder} />
 
           <PromptInputActions className="pt-2">
             <div className="flex items-center gap-2">
-              <PromptInputAction tooltip="Bild hinzufügen">
+              <PromptInputAction tooltip="Datei hinzufügen">
                 <button
                   className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-[var(--text-secondary)] transition hover:border-[var(--brand)]/50 hover:text-[var(--text-primary)]"
                   onClick={() => uploadInputRef.current?.click()}
@@ -486,20 +541,19 @@ export const PromptInputBox = React.forwardRef<HTMLDivElement, PromptInputBoxPro
                   <Paperclip className="h-[18px] w-[18px]" />
                   <input
                     ref={uploadInputRef}
-                    accept="image/*"
+                    accept={ACCEPT}
                     className="hidden"
                     onChange={(event) => {
-                      if (event.target.files?.[0]) {
-                        processFile(event.target.files[0]);
-                      }
+                      Array.from(event.target.files ?? []).forEach(processFile);
                       event.target.value = "";
                     }}
                     type="file"
+                    multiple
                   />
                 </button>
               </PromptInputAction>
               <span className="text-sm text-[var(--text-muted)]">
-                Enter zum Senden, Shift+Enter für Umbruch
+                {isExtracting ? "Datei wird gelesen…" : "Enter zum Senden, Shift+Enter für Umbruch"}
               </span>
             </div>
 
@@ -507,11 +561,11 @@ export const PromptInputBox = React.forwardRef<HTMLDivElement, PromptInputBoxPro
               <button
                 className={cn(
                   "flex h-12 w-12 items-center justify-center rounded-full transition duration-200",
-                  hasContent
+                  hasContent && !isBusy
                     ? "bg-[var(--brand)] text-[var(--brand-contrast)] shadow-[0_18px_40px_rgba(252,106,28,0.28)] hover:scale-[1.02] hover:bg-[var(--brand-strong)]"
                     : "bg-white/5 text-[var(--text-muted)]",
                 )}
-                disabled={!hasContent || isLoading}
+                disabled={!hasContent || isBusy}
                 onClick={handleSubmit}
                 type="button"
               >

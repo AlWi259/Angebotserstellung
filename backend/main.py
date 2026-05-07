@@ -1,19 +1,25 @@
 """FastAPI application for the local MVP offer workflow."""
 from __future__ import annotations
 
+import base64
+import io
 import json
 import os
 import re
+import secrets as _secrets
 from contextlib import asynccontextmanager
 from datetime import date
 from pathlib import Path
 from typing import Any, Literal, Optional
 
-from fastapi import FastAPI, HTTPException, Response
+from fastapi import FastAPI, File, HTTPException, Response, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request as StarletteRequest
+from starlette.responses import Response as StarletteResponse
 
 from .config import Config, get_config, get_user_profile
 from .generator import build_offer_prompt, format_date_german, generate_offer, parse_ai_response
@@ -35,6 +41,32 @@ async def lifespan(_: FastAPI):
     yield
 
 
+class _BasicAuthMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: StarletteRequest, call_next):
+        password = os.environ.get("APP_PASSWORD", "").strip()
+        if not password:
+            return await call_next(request)
+        if request.method == "OPTIONS" or request.url.path == "/healthz":
+            return await call_next(request)
+
+        auth = request.headers.get("Authorization", "")
+        if auth.startswith("Basic "):
+            try:
+                decoded = base64.b64decode(auth[6:]).decode("utf-8")
+                username, _, pwd = decoded.partition(":")
+                exp_user = os.environ.get("APP_USERNAME", "accantec")
+                if _secrets.compare_digest(username, exp_user) and _secrets.compare_digest(pwd, password):
+                    return await call_next(request)
+            except Exception:
+                pass
+
+        return StarletteResponse(
+            status_code=401,
+            headers={"WWW-Authenticate": 'Basic realm="Angebotserstellung"'},
+            content="Anmeldung erforderlich.",
+        )
+
+
 app = FastAPI(
     title="accantec Angebotserstellung",
     description="Lokale MVP-App fuer die accantec Angebotserstellung",
@@ -54,6 +86,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(_BasicAuthMiddleware)
 
 if _FRONTEND_DIR.exists():
     app.mount("/static", StaticFiles(directory=str(_FRONTEND_DIR)), name="static")
@@ -252,6 +285,54 @@ def _build_form_data(req: OfferFormPayload) -> dict:
         "line_items": [item.model_dump() for item in req.line_items],
         "leistungsausschluesse": req.leistungsausschluesse,
     }
+
+
+# ─── File text extraction ────────────────────────────────────────────────────
+
+@app.post("/api/extract-text")
+async def extract_text(file: UploadFile = File(...)):
+    content = await file.read()
+    filename = file.filename or ""
+    ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
+
+    try:
+        if ext in ("txt", "md", "markdown", "csv"):
+            text = content.decode("utf-8", errors="replace")
+        elif ext == "pdf":
+            from pypdf import PdfReader  # type: ignore
+            reader = PdfReader(io.BytesIO(content))
+            text = "\n".join(page.extract_text() or "" for page in reader.pages)
+        elif ext in ("xlsx", "xls"):
+            import openpyxl  # type: ignore
+            wb = openpyxl.load_workbook(io.BytesIO(content), read_only=True, data_only=True)
+            rows: list[str] = []
+            for sheet in wb.worksheets:
+                rows.append(f"## {sheet.title}")
+                for row in sheet.iter_rows(values_only=True):
+                    if any(c is not None for c in row):
+                        rows.append("\t".join("" if c is None else str(c) for c in row))
+            text = "\n".join(rows)
+        elif ext in ("pptx", "ppt"):
+            from pptx import Presentation  # type: ignore
+            prs = Presentation(io.BytesIO(content))
+            slides: list[str] = []
+            for i, slide in enumerate(prs.slides, 1):
+                parts = [f"## Folie {i}"]
+                for shape in slide.shapes:
+                    if hasattr(shape, "text") and shape.text.strip():
+                        parts.append(shape.text.strip())
+                slides.append("\n".join(parts))
+            text = "\n\n".join(slides)
+        elif ext in ("docx", "doc"):
+            from docx import Document  # type: ignore
+            doc = Document(io.BytesIO(content))
+            text = "\n".join(p.text for p in doc.paragraphs if p.text.strip())
+        else:
+            text = content.decode("utf-8", errors="replace")
+    except Exception as exc:
+        raise HTTPException(status_code=422, detail=f"Datei konnte nicht gelesen werden: {exc}") from exc
+
+    return {"text": text[:60000], "filename": filename}
 
 
 # ─── Chat endpoint ────────────────────────────────────────────────────────────
